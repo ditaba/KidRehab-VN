@@ -1,0 +1,490 @@
+// KidRehab – pediatric rehabilitation management platform
+// Core loop: Patient → Assessment → TreatmentPlan → TreatmentGoal → TherapySession → Measurement → Progress
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  DOCTOR
+  THERAPIST
+  RECEPTIONIST
+  PARENT // reserved for the future Parent Portal; not usable in MVP
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  DISCHARGED
+}
+
+enum AssessmentType {
+  INITIAL
+  REASSESSMENT
+}
+
+enum TreatmentPlanStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  ACHIEVED
+  PAUSED
+  CANCELLED
+}
+
+enum MetricDirection {
+  INCREASE_IS_BETTER
+  DECREASE_IS_BETTER
+}
+
+enum SessionStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+enum Mood {
+  HAPPY
+  CALM
+  NEUTRAL
+  IRRITABLE
+  UPSET
+}
+
+enum Tolerance {
+  GOOD
+  FAIR
+  POOR
+}
+
+enum AssistanceLevel {
+  INDEPENDENT
+  SUPERVISION
+  MINIMAL
+  MODERATE
+  MAXIMAL
+  DEPENDENT
+}
+
+enum ExerciseCategory {
+  BALANCE
+  STRENGTH
+  WALKING
+  STRETCHING
+  COORDINATION
+  MOBILITY
+  OTHER
+}
+
+enum ExerciseStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  COMPLETE
+  LOGIN
+  LOGOUT
+}
+
+// ---------------------------------------------------------------------------
+// Tenant & users
+// ---------------------------------------------------------------------------
+
+model Clinic {
+  id                        String   @id @default(cuid())
+  name                      String
+  address                   String?
+  phone                     String?
+  timezone                  String   @default("Asia/Ho_Chi_Minh")
+  defaultAppointmentMinutes Int      @default(45)
+  reassessmentIntervalDays  Int      @default(90)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  users        User[]
+  patients     Patient[]
+  exercises    Exercise[]
+  appointments Appointment[]
+  auditLogs    AuditLog[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clinicId     String
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         Role
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clinic        Clinic         @relation(fields: [clinicId], references: [id])
+  refreshTokens RefreshToken[]
+
+  primaryPatients     Patient[]             @relation("PrimaryTherapist")
+  therapySessions     TherapySession[]      @relation("SessionTherapist")
+  appointments        Appointment[]         @relation("AppointmentTherapist")
+  assessments         Assessment[]          @relation("AssessmentAuthor")
+  measurements        ProgressMeasurement[] @relation("MeasurementRecorder")
+  // Future Parent Portal: a PARENT user is linked to one or more guardian records.
+  guardianProfiles    Guardian[]            @relation("GuardianUser")
+
+  @@index([clinicId, role])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Patients
+// ---------------------------------------------------------------------------
+
+model Patient {
+  id                 String        @id @default(cuid())
+  clinicId           String
+  patientCode        String
+  firstName          String
+  lastName           String
+  dateOfBirth        DateTime      @db.Date
+  gender             Gender?
+  status             PatientStatus @default(ACTIVE)
+  medicalNotes       String?
+  primaryTherapistId String?
+  createdAt          DateTime      @default(now())
+  createdBy          String
+  updatedAt          DateTime      @updatedAt
+  updatedBy          String
+
+  clinic           Clinic           @relation(fields: [clinicId], references: [id])
+  primaryTherapist User?            @relation("PrimaryTherapist", fields: [primaryTherapistId], references: [id])
+  guardians        Guardian[]
+  diagnoses        Diagnosis[]
+  assessments      Assessment[]
+  treatmentPlans   TreatmentPlan[]
+  therapySessions  TherapySession[]
+  appointments     Appointment[]
+  progressMetrics  ProgressMetric[]
+
+  @@unique([clinicId, patientCode])
+  @@index([clinicId, status])
+  @@index([clinicId, lastName, firstName])
+}
+
+model Guardian {
+  id           String   @id @default(cuid())
+  patientId    String
+  fullName     String
+  relationship String // Mother, Father, Grandparent, Guardian, Other
+  phone        String
+  email        String?
+  isPrimary    Boolean  @default(false)
+  userId       String? // reserved for Parent Portal login
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user    User?   @relation("GuardianUser", fields: [userId], references: [id])
+
+  @@index([patientId])
+}
+
+model Diagnosis {
+  id          String    @id @default(cuid())
+  patientId   String
+  name        String
+  icdCode     String?
+  isPrimary   Boolean   @default(true)
+  notes       String?
+  diagnosedAt DateTime? @db.Date
+  createdAt   DateTime  @default(now())
+  createdBy   String
+  updatedAt   DateTime  @updatedAt
+  updatedBy   String
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([name])
+}
+
+// ---------------------------------------------------------------------------
+// Clinical workflow
+// ---------------------------------------------------------------------------
+
+model Assessment {
+  id                 String         @id @default(cuid())
+  patientId          String
+  authorId           String
+  type               AssessmentType @default(INITIAL)
+  assessedAt         DateTime       @default(now())
+  medicalHistory     String?
+  developmentHistory String?
+  functionalAbility  String?
+  rangeOfMotion      String?
+  strength           String?
+  balance            String?
+  gait               String?
+  painScore          Int?
+  pain               String?
+  clinicalNotes      String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  updatedBy          String
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author  User    @relation("AssessmentAuthor", fields: [authorId], references: [id])
+
+  @@index([patientId, assessedAt])
+}
+
+model TreatmentPlan {
+  id                   String              @id @default(cuid())
+  patientId            String
+  title                String
+  primaryObjective     String?
+  startDate            DateTime            @db.Date
+  reviewDate           DateTime?           @db.Date
+  recommendedFrequency String?
+  expectedDuration     String?
+  notes                String?
+  status               TreatmentPlanStatus @default(ACTIVE)
+  createdAt            DateTime            @default(now())
+  createdBy            String
+  updatedAt            DateTime            @updatedAt
+  updatedBy            String
+
+  patient Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  goals   TreatmentGoal[]
+
+  @@index([patientId, status])
+}
+
+model TreatmentGoal {
+  id              String          @id @default(cuid())
+  treatmentPlanId String
+  title           String
+  description     String?
+  metricName      String
+  unit            String
+  direction       MetricDirection @default(INCREASE_IS_BETTER)
+  baselineValue   Float
+  targetValue     Float
+  currentValue    Float?
+  targetDate      DateTime?       @db.Date
+  status          GoalStatus      @default(NOT_STARTED)
+  createdAt       DateTime        @default(now())
+  createdBy       String
+  updatedAt       DateTime        @updatedAt
+  updatedBy       String
+
+  treatmentPlan TreatmentPlan   @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+  metric        ProgressMetric?
+
+  @@index([treatmentPlanId])
+}
+
+model ProgressMetric {
+  id              String          @id @default(cuid())
+  patientId       String
+  treatmentGoalId String?         @unique
+  name            String
+  unit            String
+  direction       MetricDirection @default(INCREASE_IS_BETTER)
+  baselineValue   Float
+  targetValue     Float
+  createdAt       DateTime        @default(now())
+
+  patient       Patient               @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  treatmentGoal TreatmentGoal?        @relation(fields: [treatmentGoalId], references: [id], onDelete: SetNull)
+  measurements  ProgressMeasurement[]
+
+  @@index([patientId])
+}
+
+model ProgressMeasurement {
+  id               String   @id @default(cuid())
+  progressMetricId String
+  therapySessionId String?
+  value            Float
+  measuredAt       DateTime @default(now())
+  recordedBy       String
+  notes            String?
+
+  metric   ProgressMetric  @relation(fields: [progressMetricId], references: [id], onDelete: Cascade)
+  session  TherapySession? @relation(fields: [therapySessionId], references: [id], onDelete: Cascade)
+  recorder User            @relation("MeasurementRecorder", fields: [recordedBy], references: [id])
+
+  @@unique([progressMetricId, therapySessionId])
+  @@index([progressMetricId, measuredAt])
+}
+
+// ---------------------------------------------------------------------------
+// Therapy workflow
+// ---------------------------------------------------------------------------
+
+model TherapySession {
+  id              String           @id @default(cuid())
+  patientId       String
+  therapistId     String
+  appointmentId   String?          @unique
+  sessionDate     DateTime         @default(now())
+  durationMinutes Int?
+  painScore       Int? // 0–10
+  energyLevel     Int? // 1–5
+  mood            Mood?
+  tolerance       Tolerance?
+  assistanceLevel AssistanceLevel?
+  notes           String?
+  status          SessionStatus    @default(DRAFT)
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  createdBy       String
+  updatedAt       DateTime         @updatedAt
+  updatedBy       String
+
+  patient      Patient               @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist    User                  @relation("SessionTherapist", fields: [therapistId], references: [id])
+  appointment  Appointment?          @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  exercises    SessionExercise[]
+  measurements ProgressMeasurement[]
+
+  @@index([patientId, sessionDate])
+  @@index([therapistId, sessionDate])
+}
+
+model Exercise {
+  id                     String           @id @default(cuid())
+  clinicId               String
+  name                   String
+  category               ExerciseCategory @default(OTHER)
+  description            String?
+  instructions           String?
+  defaultSets            Int?
+  defaultRepetitions     Int?
+  defaultDurationSeconds Int?
+  status                 ExerciseStatus   @default(ACTIVE)
+  createdAt              DateTime         @default(now())
+  createdBy              String
+  updatedAt              DateTime         @updatedAt
+  updatedBy              String
+
+  clinic           Clinic            @relation(fields: [clinicId], references: [id])
+  sessionExercises SessionExercise[]
+
+  @@index([clinicId, status])
+}
+
+/// A prescription inside a session. Values are copied from the template so that
+/// editing them never modifies the original Exercise.
+model SessionExercise {
+  id              String   @id @default(cuid())
+  sessionId       String
+  exerciseId      String
+  exerciseName    String
+  sets            Int?
+  repetitions     Int?
+  durationSeconds Int?
+  notes           String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  session  TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise Exercise       @relation(fields: [exerciseId], references: [id])
+
+  @@index([sessionId])
+}
+
+// ---------------------------------------------------------------------------
+// Scheduling
+// ---------------------------------------------------------------------------
+
+model Appointment {
+  id              String            @id @default(cuid())
+  clinicId        String
+  patientId       String
+  therapistId     String
+  startAt         DateTime
+  durationMinutes Int
+  status          AppointmentStatus @default(SCHEDULED)
+  notes           String?
+  createdAt       DateTime          @default(now())
+  createdBy       String
+  updatedAt       DateTime          @updatedAt
+  updatedBy       String
+
+  clinic    Clinic          @relation(fields: [clinicId], references: [id])
+  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist User            @relation("AppointmentTherapist", fields: [therapistId], references: [id])
+  session   TherapySession?
+
+  @@index([clinicId, startAt])
+  @@index([therapistId, startAt])
+  @@index([patientId, startAt])
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  clinicId  String
+  userId    String?
+  userName  String?
+  action    AuditAction
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+
+  @@index([clinicId, createdAt])
+  @@index([entity, entityId])
+}
