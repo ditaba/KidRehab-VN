@@ -155,7 +155,7 @@ describe('KidRehab API (e2e)', () => {
     it('therapists can view assessments but not create them', async () => {
       const a = await patientByCode('KR-0001');
       const res = await as('t1').get(`/patients/${a.id}/assessments`).expect(200);
-      expect(res.body[0].author.fullName).toBe('Dr. Nguyen Thanh Hai');
+      expect(res.body[0].author.fullName).toBe('BS. Nguyen Thanh Hai');
       await as('t1').post(`/patients/${a.id}/assessments`, { clinicalNotes: 'x' }).expect(403);
       await as('t1').post('/patients', {}).expect(403);
     });
@@ -182,13 +182,13 @@ describe('KidRehab API (e2e)', () => {
       const found = await as('doctor').get('/patients?search=Nguyen Van A').expect(200);
       expect(found.body.data).toHaveLength(1);
       expect(found.body.data[0]).toMatchObject({ patientCode: 'KR-0001', age: 5, status: 'ACTIVE' });
-      expect(found.body.data[0].diagnosis).toMatch(/Cerebral Palsy/);
+      expect(found.body.data[0].diagnosis).toMatch(/Bại não/);
       expect(found.body.data[0].lastSession).not.toBeNull();
     });
 
     it('filters by status, therapist and diagnosis', async () => {
       const t1 = await prisma.user.findUniqueOrThrow({ where: { email: 'therapist1@kidrehab.vn' } });
-      const r = await as('doctor').get(`/patients?therapistId=${t1.id}&diagnosis=cerebral&status=ACTIVE`).expect(200);
+      const r = await as('doctor').get(`/patients?therapistId=${t1.id}&diagnosis=${encodeURIComponent("bại não")}&status=ACTIVE`).expect(200);
       expect(r.body.data.map((p: { patientCode: string }) => p.patientCode)).toEqual(['KR-0001']);
     });
 
@@ -259,7 +259,7 @@ describe('KidRehab API (e2e)', () => {
         .post(`/patients/${patientId}/assessments`, { functionalAbility: 'Stands 4 s', balance: 'Poor', painScore: 1 })
         .expect(201);
       expect(res.body.type).toBe('INITIAL');
-      expect(res.body.author.fullName).toBe('Dr. Nguyen Thanh Hai');
+      expect(res.body.author.fullName).toBe('BS. Nguyen Thanh Hai');
       expect(res.body.createdAt).toBeDefined();
       expect(res.body.updatedAt).toBeDefined();
       await as('doctor').post(`/patients/${patientId}/assessments`, { painScore: 11 }).expect(400);
@@ -313,14 +313,14 @@ describe('KidRehab API (e2e)', () => {
     });
 
     it('adds exercises without modifying the template', async () => {
-      const ex = await prisma.exercise.findFirstOrThrow({ where: { name: 'Standing Balance' } });
+      const ex = await prisma.exercise.findFirstOrThrow({ where: { name: 'Thăng bằng đứng' } });
       const se = await as('t1').post(`/sessions/${sessionId}/exercises`, { exerciseId: ex.id }).expect(201);
-      expect(se.body).toMatchObject({ exerciseName: 'Standing Balance', sets: 3, durationSeconds: 30 });
+      expect(se.body).toMatchObject({ exerciseName: 'Thăng bằng đứng', sets: 3, durationSeconds: 30 });
       await as('t1').patch(`/sessions/${sessionId}/exercises/${se.body.id}`, { sets: 5, durationSeconds: 45 }).expect(200);
       const template = await prisma.exercise.findUniqueOrThrow({ where: { id: ex.id } });
       expect(template.defaultSets).toBe(3);
       expect(template.defaultDurationSeconds).toBe(30);
-      const second = await prisma.exercise.findFirstOrThrow({ where: { name: 'Sit-to-Stand' } });
+      const second = await prisma.exercise.findFirstOrThrow({ where: { name: 'Ngồi – đứng' } });
       await as('t1').post(`/sessions/${sessionId}/exercises`, { exerciseId: second.id }).expect(201);
       const disabled = await prisma.exercise.findFirstOrThrow({ where: { status: 'DISABLED' } });
       await as('t1').post(`/sessions/${sessionId}/exercises`, { exerciseId: disabled.id }).expect(409);
@@ -387,12 +387,12 @@ describe('KidRehab API (e2e)', () => {
     it('returns chronologically sorted measurements and percentages', async () => {
       const a = await patientByCode('KR-0001');
       const res = await as('doctor').get(`/patients/${a.id}/progress`).expect(200);
-      const standing = res.body.goals.find((g: { metricName: string }) => g.metricName === 'Standing Duration');
+      const standing = res.body.goals.find((g: { metricName: string }) => g.metricName === 'Thời gian đứng');
       expect(standing.measurements.map((m: { value: number }) => m.value)).toEqual([5, 9, 15, 19, 22]);
       const dates = standing.measurements.map((m: { measuredAt: string }) => new Date(m.measuredAt).getTime());
       expect([...dates].sort((x, y) => x - y)).toEqual(dates);
       expect(standing.progress.percent).toBe(68);
-      const walking = res.body.goals.find((g: { metricName: string }) => g.metricName === 'Walking Distance');
+      const walking = res.body.goals.find((g: { metricName: string }) => g.metricName === 'Quãng đường đi');
       expect(walking).toMatchObject({ baselineValue: 2, currentValue: 8, targetValue: 10 });
       expect(walking.progress.percent).toBe(75);
     });
@@ -438,7 +438,7 @@ describe('KidRehab API (e2e)', () => {
     it('requires a name and can disable without deleting history', async () => {
       await as('doctor').post('/exercises', { name: '   ' }).expect(400);
       const ex = await as('admin').post('/exercises', { name: 'Step-ups', category: 'STRENGTH', defaultSets: 2, defaultRepetitions: 8 }).expect(201);
-      const used = await prisma.exercise.findFirstOrThrow({ where: { name: 'Standing Balance' } });
+      const used = await prisma.exercise.findFirstOrThrow({ where: { name: 'Thăng bằng đứng' } });
       const before = await prisma.sessionExercise.count({ where: { exerciseId: used.id } });
       await as('admin').patch(`/exercises/${used.id}`, { status: 'DISABLED' }).expect(200);
       expect(await prisma.sessionExercise.count({ where: { exerciseId: used.id } })).toBe(before);

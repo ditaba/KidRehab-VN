@@ -61,8 +61,10 @@ The seed contains:
 
 **Demo patient: Nguyen Van A (KR-0001).** Age 5, cerebral palsy.
 
-- Standing Duration: 5 → 9 → 15 → 19 → **22 s** (target 30, 68%).
-- Walking Distance: 2 → **8 m** (target 10, 75%).
+- Thời gian đứng (standing duration): 5 → 9 → 15 → 19 → **22 s** (target 30, 68%).
+- Quãng đường đi (walking distance): 2 → **8 m** (target 10, 75%).
+
+Demo content (diagnoses, plans, goals, exercises, notes) is in Vietnamese, as a Vietnamese clinic would enter it.
 - Today's schedule: 08:00 Nguyen Van A, 09:00 Tran Thi B, 10:00 Le Van C.
 
 ---

@@ -2,8 +2,10 @@
  * Demo seed: 1 clinic, admin, doctor, 2 therapists, receptionist, 10 patients,
  * exercise templates, sessions and progress measurements.
  *
+ * Demo content is in Vietnamese, as a Vietnamese clinic would enter it.
+ *
  * Demo patient "Nguyen Van A" (5 y, cerebral palsy) has the rich history used in product demos:
- *   Standing Duration 5 → 22 sec (target 30), Walking Distance 2 → 8 m (target 10).
+ *   Thời gian đứng 5 → 22 giây (target 30), Quãng đường đi 2 → 8 m (target 10).
  *
  * WARNING: wipes all existing data in the target database.
  */
@@ -114,8 +116,8 @@ async function main() {
 
   const clinic = await prisma.clinic.create({
     data: {
-      name: 'KidRehab Saigon Pediatric Rehabilitation Center',
-      address: '123 Nguyen Thi Minh Khai, District 3, Ho Chi Minh City',
+      name: 'Trung tâm Phục hồi chức năng Nhi KidRehab Sài Gòn',
+      address: '123 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh',
       phone: '028 3930 0000',
       timezone: TZ,
       defaultAppointmentMinutes: 45,
@@ -126,8 +128,8 @@ async function main() {
   const mkUser = (email: string, fullName: string, role: Role) =>
     prisma.user.create({ data: { clinicId: clinic.id, email, fullName, role, passwordHash } });
 
-  const admin = await mkUser('admin@kidrehab.vn', 'Admin Vo Thanh Tam', Role.ADMIN);
-  const doctor = await mkUser('doctor@kidrehab.vn', 'Dr. Nguyen Thanh Hai', Role.DOCTOR);
+  const admin = await mkUser('admin@kidrehab.vn', 'Vo Thanh Tam', Role.ADMIN);
+  const doctor = await mkUser('doctor@kidrehab.vn', 'BS. Nguyen Thanh Hai', Role.DOCTOR);
   const t1 = await mkUser('therapist1@kidrehab.vn', 'Tran Minh Chau', Role.THERAPIST);
   const t2 = await mkUser('therapist2@kidrehab.vn', 'Le Thu Ha', Role.THERAPIST);
   await mkUser('reception@kidrehab.vn', 'Pham Thi Lan', Role.RECEPTIONIST);
@@ -144,66 +146,66 @@ async function main() {
     duration?: number;
   }> = [
     {
-      name: 'Standing Balance',
+      name: 'Thăng bằng đứng',
       category: ExerciseCategory.BALANCE,
-      description: 'Static standing with decreasing support to build postural control.',
-      instructions: 'Child stands on a firm surface, feet hip-width apart. Reduce hand support progressively. Stay within arm’s reach.',
+      description: 'Đứng tĩnh, giảm dần hỗ trợ để tăng kiểm soát tư thế.',
+      instructions: 'Trẻ đứng trên mặt phẳng cứng, hai chân rộng bằng hông. Giảm dần hỗ trợ bằng tay. Luôn đứng trong tầm với của trẻ.',
       sets: 3,
       duration: 30,
     },
     {
-      name: 'Sit-to-Stand',
+      name: 'Ngồi – đứng',
       category: ExerciseCategory.STRENGTH,
-      description: 'Functional lower-limb strengthening from a bench.',
-      instructions: 'Use a bench at knee height. Feet flat, lean forward, push up to stand, sit down slowly.',
+      description: 'Tăng sức mạnh chức năng chi dưới từ tư thế ngồi ghế băng.',
+      instructions: 'Dùng ghế băng cao ngang gối. Bàn chân đặt phẳng, nghiêng người ra trước, đẩy lên đứng rồi ngồi xuống chậm.',
       sets: 3,
       reps: 10,
     },
     {
-      name: 'Assisted Walking',
+      name: 'Tập đi có hỗ trợ',
       category: ExerciseCategory.WALKING,
-      description: 'Gait training with walker or hand-held assistance.',
-      instructions: 'Walk along a 10 m track. Record distance and assistance level. Cue heel strike.',
+      description: 'Tập dáng đi với khung tập đi hoặc người cầm tay hỗ trợ.',
+      instructions: 'Đi dọc đường tập 10 m. Ghi lại quãng đường và mức hỗ trợ. Nhắc trẻ đặt gót chân trước.',
       sets: 2,
       duration: 120,
     },
     {
-      name: 'Hamstring Stretch',
+      name: 'Kéo giãn cơ đùi sau',
       category: ExerciseCategory.STRETCHING,
-      description: 'Passive/active-assisted hamstring stretch in long sitting.',
-      instructions: 'Hold each stretch gently for 30 seconds. Never force through pain.',
+      description: 'Kéo giãn cơ đùi sau thụ động/chủ động có trợ giúp ở tư thế ngồi duỗi chân.',
+      instructions: 'Giữ mỗi lần kéo giãn nhẹ nhàng trong 30 giây. Không bao giờ cố ép khi trẻ đau.',
       sets: 3,
       duration: 30,
     },
     {
-      name: 'Ball Catch & Throw',
+      name: 'Bắt và ném bóng',
       category: ExerciseCategory.COORDINATION,
-      description: 'Bilateral coordination and visual-motor integration.',
-      instructions: 'Use a soft 20 cm ball at 1–2 m distance. Progress to smaller ball or greater distance.',
+      description: 'Phối hợp hai bên và tích hợp thị giác – vận động.',
+      instructions: 'Dùng bóng mềm 20 cm ở khoảng cách 1–2 m. Tăng dần bằng bóng nhỏ hơn hoặc khoảng cách xa hơn.',
       sets: 2,
       reps: 10,
     },
     {
-      name: 'Heel Raises',
+      name: 'Nhón gót',
       category: ExerciseCategory.STRENGTH,
-      description: 'Calf strengthening with support.',
-      instructions: 'Hold on to a rail, rise onto toes, hold 2 seconds, lower slowly.',
+      description: 'Tăng sức mạnh cơ bắp chân có hỗ trợ.',
+      instructions: 'Bám tay vịn, nhón lên mũi chân, giữ 2 giây rồi hạ xuống chậm.',
       sets: 3,
       reps: 12,
     },
     {
-      name: 'Tunnel Crawling',
+      name: 'Bò qua đường hầm',
       category: ExerciseCategory.MOBILITY,
-      description: 'Reciprocal crawling through a play tunnel.',
-      instructions: 'Encourage four-point crawling through a 2 m tunnel. Use toys as motivation.',
+      description: 'Bò luân phiên tay chân qua đường hầm đồ chơi.',
+      instructions: 'Khuyến khích trẻ bò bốn điểm qua đường hầm 2 m. Dùng đồ chơi để tạo động lực.',
       sets: 3,
       reps: 3,
     },
     {
-      name: 'Tummy Time Reach',
+      name: 'Nằm sấp với tay',
       category: ExerciseCategory.OTHER,
-      description: 'Prone weight-bearing with reaching (archived template).',
-      instructions: 'Superseded by Tunnel Crawling for this clinic.',
+      description: 'Chịu trọng lượng ở tư thế nằm sấp kết hợp với tay (mẫu đã lưu trữ).',
+      instructions: 'Phòng khám đã thay bằng bài Bò qua đường hầm.',
       sets: 3,
       duration: 60,
     },
@@ -220,7 +222,7 @@ async function main() {
         defaultSets: e.sets,
         defaultRepetitions: e.reps,
         defaultDurationSeconds: e.duration,
-        status: e.name === 'Tummy Time Reach' ? 'DISABLED' : 'ACTIVE',
+        status: e.name === 'Nằm sấp với tay' ? 'DISABLED' : 'ACTIVE',
         createdBy: admin.id,
         updatedBy: admin.id,
       },
@@ -235,33 +237,33 @@ async function main() {
       firstName: 'Van A',
       dob: yearsAgo(5, 40),
       gender: Gender.MALE,
-      diagnosis: 'Cerebral Palsy – spastic diplegia (GMFCS II)',
+      diagnosis: 'Bại não – liệt cứng hai chi dưới (GMFCS II)',
       icd: 'G80.1',
       therapist: 'T1',
       guardian: { fullName: 'Nguyen Thi Mai', relationship: 'Mother', phone: '0903 123 456', email: 'mai.nguyen@example.com' },
-      medicalNotes: 'Born at 32 weeks. Wears bilateral AFOs. No seizures.',
+      medicalNotes: 'Sinh non 32 tuần. Mang nẹp cổ bàn chân (AFO) hai bên. Không co giật.',
       assessedDaysAgo: 64,
       plan: {
-        title: 'Standing & walking independence',
-        objective: 'Improve standing balance and independent walking distance for home and kindergarten mobility.',
-        frequency: '3 sessions / week',
-        duration: '6 months',
+        title: 'Tự đứng và tự đi',
+        objective: 'Cải thiện thăng bằng khi đứng và quãng đường tự đi để di chuyển ở nhà và ở trường mầm non.',
+        frequency: '3 buổi/tuần',
+        duration: '6 tháng',
         startDaysAgo: 63,
         reviewInDays: 30,
       },
       goals: [
         {
-          title: 'Stand independently',
-          metricName: 'Standing Duration',
-          unit: 'seconds',
+          title: 'Tự đứng không hỗ trợ',
+          metricName: 'Thời gian đứng',
+          unit: 'giây',
           baseline: 5,
           target: 30,
           targetInDays: 37,
           values: [5, 9, 15, 19, 22],
         },
         {
-          title: 'Walk independently at home',
-          metricName: 'Walking Distance',
+          title: 'Tự đi lại trong nhà',
+          metricName: 'Quãng đường đi',
           unit: 'm',
           baseline: 2,
           target: 10,
@@ -270,7 +272,7 @@ async function main() {
         },
       ],
       sessionDays: [-62, -52, -35, -21, -1],
-      exercises: ['Standing Balance', 'Assisted Walking', 'Sit-to-Stand'],
+      exercises: ['Thăng bằng đứng', 'Tập đi có hỗ trợ', 'Ngồi – đứng'],
     },
     {
       code: 'KR-0002',
@@ -278,24 +280,24 @@ async function main() {
       firstName: 'Thi B',
       dob: yearsAgo(4, 100),
       gender: Gender.FEMALE,
-      diagnosis: 'Global developmental delay',
+      diagnosis: 'Chậm phát triển toàn thể',
       icd: 'F88',
       therapist: 'T1',
       guardian: { fullName: 'Tran Van Hung', relationship: 'Father', phone: '0912 222 333' },
       assessedDaysAgo: 40,
       plan: {
-        title: 'Gross motor development',
-        objective: 'Achieve age-appropriate sit-to-stand and squat-to-stand transitions.',
-        frequency: '2 sessions / week',
-        duration: '4 months',
+        title: 'Phát triển vận động thô',
+        objective: 'Đạt được chuyển tư thế ngồi – đứng và ngồi xổm – đứng phù hợp với tuổi.',
+        frequency: '2 buổi/tuần',
+        duration: '4 tháng',
         startDaysAgo: 38,
         reviewInDays: 45,
       },
       goals: [
         {
-          title: 'Independent sit-to-stand',
-          metricName: 'Sit-to-Stand Repetitions (30 s)',
-          unit: 'reps',
+          title: 'Tự ngồi – đứng',
+          metricName: 'Số lần ngồi – đứng (30 giây)',
+          unit: 'lần',
           baseline: 2,
           target: 8,
           targetInDays: 80,
@@ -303,7 +305,7 @@ async function main() {
         },
       ],
       sessionDays: [-35, -24, -14, -4],
-      exercises: ['Sit-to-Stand', 'Tunnel Crawling'],
+      exercises: ['Ngồi – đứng', 'Bò qua đường hầm'],
     },
     {
       code: 'KR-0003',
@@ -311,24 +313,24 @@ async function main() {
       firstName: 'Van C',
       dob: yearsAgo(7, 15),
       gender: Gender.MALE,
-      diagnosis: 'Down syndrome with hypotonia',
+      diagnosis: 'Hội chứng Down kèm giảm trương lực cơ',
       icd: 'Q90.9',
       therapist: 'T1',
       guardian: { fullName: 'Le Thi Thu', relationship: 'Mother', phone: '0987 654 321' },
       assessedDaysAgo: 120, // overdue for reassessment
       plan: {
-        title: 'Balance and endurance',
-        objective: 'Improve single-leg balance and walking endurance.',
-        frequency: '2 sessions / week',
-        duration: '6 months',
+        title: 'Thăng bằng và sức bền',
+        objective: 'Cải thiện thăng bằng trên một chân và sức bền khi đi.',
+        frequency: '2 buổi/tuần',
+        duration: '6 tháng',
         startDaysAgo: 118,
         reviewInDays: -5,
       },
       goals: [
         {
-          title: 'Single-leg stance',
-          metricName: 'Single-Leg Stance',
-          unit: 'seconds',
+          title: 'Đứng một chân',
+          metricName: 'Thời gian đứng một chân',
+          unit: 'giây',
           baseline: 1,
           target: 10,
           targetInDays: 60,
@@ -336,7 +338,7 @@ async function main() {
         },
       ],
       sessionDays: [-110, -80, -50, -30, -9],
-      exercises: ['Standing Balance', 'Heel Raises'],
+      exercises: ['Thăng bằng đứng', 'Nhón gót'],
     },
     {
       code: 'KR-0004',
@@ -344,23 +346,23 @@ async function main() {
       firstName: 'Minh D',
       dob: yearsAgo(3, 20),
       gender: Gender.MALE,
-      diagnosis: 'Congenital muscular torticollis',
+      diagnosis: 'Vẹo cổ bẩm sinh do cơ',
       icd: 'Q68.0',
       therapist: 'T2',
       guardian: { fullName: 'Pham Thi Hoa', relationship: 'Mother', phone: '0905 111 222' },
       assessedDaysAgo: 30,
       plan: {
-        title: 'Neck range of motion',
-        objective: 'Restore full cervical rotation and reduce head tilt.',
-        frequency: '2 sessions / week',
-        duration: '3 months',
+        title: 'Tầm vận động cổ',
+        objective: 'Phục hồi đủ tầm xoay cổ và giảm nghiêng đầu.',
+        frequency: '2 buổi/tuần',
+        duration: '3 tháng',
         startDaysAgo: 28,
         reviewInDays: 60,
       },
       goals: [
         {
-          title: 'Reduce head tilt',
-          metricName: 'Head Tilt Angle',
+          title: 'Giảm nghiêng đầu',
+          metricName: 'Góc nghiêng đầu',
           unit: '°',
           baseline: 15,
           target: 3,
@@ -370,7 +372,7 @@ async function main() {
         },
       ],
       sessionDays: [-25, -14, -3],
-      exercises: ['Hamstring Stretch'],
+      exercises: ['Kéo giãn cơ đùi sau'],
     },
     {
       code: 'KR-0005',
@@ -378,24 +380,24 @@ async function main() {
       firstName: 'Thi E',
       dob: yearsAgo(6, 200),
       gender: Gender.FEMALE,
-      diagnosis: 'Autism spectrum disorder – motor coordination difficulties',
+      diagnosis: 'Rối loạn phổ tự kỷ – khó khăn phối hợp vận động',
       icd: 'F84.0',
       therapist: 'T2',
       guardian: { fullName: 'Hoang Van Nam', relationship: 'Father', phone: '0938 777 888' },
       assessedDaysAgo: 20,
       plan: {
-        title: 'Coordination for play',
-        objective: 'Improve ball skills to participate in group play.',
-        frequency: '1 session / week',
-        duration: '3 months',
+        title: 'Phối hợp vận động khi chơi',
+        objective: 'Cải thiện kỹ năng chơi bóng để tham gia chơi nhóm.',
+        frequency: '1 buổi/tuần',
+        duration: '3 tháng',
         startDaysAgo: 18,
         reviewInDays: 70,
       },
       goals: [
         {
-          title: 'Catch a ball from 2 m',
-          metricName: 'Successful Catches (out of 10)',
-          unit: 'catches',
+          title: 'Bắt bóng ở khoảng cách 2 m',
+          metricName: 'Số lần bắt bóng thành công (trên 10)',
+          unit: 'lần bắt',
           baseline: 2,
           target: 8,
           targetInDays: 70,
@@ -403,7 +405,7 @@ async function main() {
         },
       ],
       sessionDays: [-14, -7],
-      exercises: ['Ball Catch & Throw'],
+      exercises: ['Bắt và ném bóng'],
     },
     {
       code: 'KR-0006',
@@ -411,23 +413,23 @@ async function main() {
       firstName: 'Duc F',
       dob: yearsAgo(8, 50),
       gender: Gender.MALE,
-      diagnosis: 'Post-operative rehabilitation – tibial fracture',
+      diagnosis: 'Phục hồi chức năng sau phẫu thuật – gãy xương chày',
       icd: 'S82.2',
       therapist: 'T2',
       guardian: { fullName: 'Vu Thi Lien', relationship: 'Grandparent', phone: '0909 333 444' },
       assessedDaysAgo: 10,
       plan: {
-        title: 'Return to full weight bearing',
-        objective: 'Restore knee range of motion and normal gait.',
-        frequency: '3 sessions / week',
-        duration: '8 weeks',
+        title: 'Chịu lực hoàn toàn trở lại',
+        objective: 'Phục hồi tầm vận động gối và dáng đi bình thường.',
+        frequency: '3 buổi/tuần',
+        duration: '8 tuần',
         startDaysAgo: 9,
         reviewInDays: 20,
       },
       goals: [
         {
-          title: 'Knee flexion range',
-          metricName: 'Knee Flexion',
+          title: 'Tầm gấp gối',
+          metricName: 'Góc gấp gối',
           unit: '°',
           baseline: 70,
           target: 130,
@@ -436,7 +438,7 @@ async function main() {
         },
       ],
       sessionDays: [-8, -2],
-      exercises: ['Heel Raises', 'Assisted Walking'],
+      exercises: ['Nhón gót', 'Tập đi có hỗ trợ'],
     },
     {
       code: 'KR-0007',
@@ -444,7 +446,7 @@ async function main() {
       firstName: 'Ngoc G',
       dob: yearsAgo(2, 30),
       gender: Gender.FEMALE,
-      diagnosis: "Brachial plexus birth palsy (Erb's palsy)",
+      diagnosis: 'Liệt đám rối thần kinh cánh tay do sinh (liệt Erb)',
       icd: 'P14.0',
       therapist: 'T1',
       guardian: { fullName: 'Dang Van Tuan', relationship: 'Father', phone: '0918 555 666' },
@@ -456,23 +458,23 @@ async function main() {
       firstName: 'Quang H',
       dob: yearsAgo(9, 10),
       gender: Gender.MALE,
-      diagnosis: 'Idiopathic toe walking',
+      diagnosis: 'Đi nhón gót vô căn',
       icd: 'R26.89',
       therapist: 'T2',
       guardian: { fullName: 'Bui Thi Ngoc', relationship: 'Mother', phone: '0977 121 212' },
       assessedDaysAgo: 50,
       plan: {
-        title: 'Heel-toe gait',
-        objective: 'Increase ankle dorsiflexion and heel strike during walking.',
-        frequency: '2 sessions / week',
-        duration: '3 months',
+        title: 'Dáng đi gót – mũi chân',
+        objective: 'Tăng gập mu cổ chân và đặt gót chân khi đi.',
+        frequency: '2 buổi/tuần',
+        duration: '3 tháng',
         startDaysAgo: 48,
         reviewInDays: 40,
       },
       goals: [
         {
-          title: 'Ankle dorsiflexion',
-          metricName: 'Ankle Dorsiflexion',
+          title: 'Gập mu cổ chân',
+          metricName: 'Góc gập mu cổ chân',
           unit: '°',
           baseline: -5,
           target: 10,
@@ -481,7 +483,7 @@ async function main() {
         },
       ],
       sessionDays: [-45, -30, -16],
-      exercises: ['Hamstring Stretch', 'Heel Raises'],
+      exercises: ['Kéo giãn cơ đùi sau', 'Nhón gót'],
     },
     {
       code: 'KR-0009',
@@ -490,7 +492,7 @@ async function main() {
       dob: yearsAgo(5, 300),
       gender: Gender.FEMALE,
       status: PatientStatus.INACTIVE,
-      diagnosis: 'Spina bifida (lumbar myelomeningocele)',
+      diagnosis: 'Tật nứt đốt sống (thoát vị tủy – màng tủy vùng thắt lưng)',
       icd: 'Q05.7',
       therapist: 'T1',
       guardian: { fullName: 'Do Van Long', relationship: 'Guardian', phone: '0966 999 000' },
@@ -503,7 +505,7 @@ async function main() {
       dob: yearsAgo(10, 70),
       gender: Gender.MALE,
       status: PatientStatus.DISCHARGED,
-      diagnosis: 'Juvenile idiopathic arthritis',
+      diagnosis: 'Viêm khớp tự phát thiếu niên',
       icd: 'M08.0',
       therapist: 'T2',
       guardian: { fullName: 'Ngo Thi Bich', relationship: 'Mother', phone: '0944 343 434' },
@@ -543,22 +545,22 @@ async function main() {
           updatedBy: doctor.id,
           type: AssessmentType.INITIAL,
           assessedAt: at(-s.assessedDaysAgo, 10),
-          medicalHistory: s.medicalNotes ?? 'Unremarkable perinatal history.',
+          medicalHistory: s.medicalNotes ?? 'Tiền sử chu sinh bình thường.',
           developmentHistory:
             s.code === 'KR-0001'
-              ? 'Sat independently at 14 months. Not yet walking independently. Cruises along furniture.'
-              : 'Milestones mildly delayed per parent report.',
+              ? 'Tự ngồi lúc 14 tháng. Chưa tự đi được. Vịn đồ đạc để đi men.'
+              : 'Theo phụ huynh, các mốc phát triển chậm nhẹ.',
           functionalAbility:
             s.code === 'KR-0001'
-              ? 'Stands with support; independent standing ~5 s. Walks ~2 m with posterior walker.'
-              : 'See goals.',
-          rangeOfMotion: s.code === 'KR-0001' ? 'Bilateral ankle dorsiflexion limited to 0°. Hip flexion contracture 10°.' : undefined,
-          strength: s.code === 'KR-0001' ? 'Hip abductors and extensors 3/5 bilaterally.' : undefined,
-          balance: s.code === 'KR-0001' ? 'Poor static standing balance, wide base of support.' : undefined,
-          gait: s.code === 'KR-0001' ? 'Crouch gait with toe-strike; requires walker.' : undefined,
+              ? 'Đứng được khi có hỗ trợ; tự đứng khoảng 5 giây. Đi khoảng 2 m với khung tập đi sau lưng.'
+              : 'Xem mục tiêu.',
+          rangeOfMotion: s.code === 'KR-0001' ? 'Gập mu cổ chân hai bên giới hạn ở 0°. Co rút gấp háng 10°.' : undefined,
+          strength: s.code === 'KR-0001' ? 'Cơ dạng và cơ duỗi háng 3/5 hai bên.' : undefined,
+          balance: s.code === 'KR-0001' ? 'Thăng bằng đứng tĩnh kém, chân đế rộng.' : undefined,
+          gait: s.code === 'KR-0001' ? 'Dáng đi khom gối, chạm mũi chân trước; cần khung tập đi.' : undefined,
           painScore: 0,
-          pain: 'No pain reported.',
-          clinicalNotes: `Initial assessment for ${s.diagnosis}. Plan reviewed with family.`,
+          pain: 'Không ghi nhận đau.',
+          clinicalNotes: `Đánh giá ban đầu: ${s.diagnosis}. Đã trao đổi kế hoạch với gia đình.`,
         },
       });
     }
@@ -643,13 +645,13 @@ async function main() {
           notes:
             s.code === 'KR-0001'
               ? [
-                  'Baseline session. Stood 5 s with close supervision; walked 2 m with walker. Mother taught home program.',
-                  'Better weight shift. Standing 9 s. Mild fatigue after walking.',
-                  'Standing 15 s. Walked 5 m with hand-held assistance. Good engagement.',
-                  'Standing 19 s. Began obstacle stepping. Parents report more cruising at home.',
-                  'Standing 22 s – best so far. Walked 8 m with supervision only.',
+                  'Buổi đo ban đầu. Đứng 5 giây với giám sát sát; đi 2 m với khung tập đi. Đã hướng dẫn mẹ bài tập tại nhà.',
+                  'Chuyển trọng tâm tốt hơn. Đứng 9 giây. Mệt nhẹ sau khi đi.',
+                  'Đứng 15 giây. Đi 5 m có người cầm tay. Hợp tác tốt.',
+                  'Đứng 19 giây. Bắt đầu tập bước qua vật cản. Phụ huynh cho biết ở nhà bé vịn đi men nhiều hơn.',
+                  'Đứng 22 giây – tốt nhất từ trước đến nay. Đi 8 m chỉ cần giám sát.',
                 ][i]
-              : 'Session completed as planned. Home exercises reviewed with guardian.',
+              : 'Hoàn thành buổi tập theo kế hoạch. Đã ôn lại bài tập tại nhà với người giám hộ.',
           status: SessionStatus.COMPLETED,
           completedAt: date,
           createdBy: therapist.id,
@@ -720,9 +722,9 @@ async function main() {
   }
 
   // A second clinic proves data isolation in demos/tests: its users must never see clinic 1 data.
-  const other = await prisma.clinic.create({ data: { name: 'Other Clinic (isolation check)', timezone: TZ } });
+  const other = await prisma.clinic.create({ data: { name: 'Phòng khám khác (kiểm tra tách dữ liệu)', timezone: TZ } });
   const otherDoctor = await prisma.user.create({
-    data: { clinicId: other.id, email: 'doctor@other-clinic.vn', fullName: 'Dr. Other Clinic', role: Role.DOCTOR, passwordHash },
+    data: { clinicId: other.id, email: 'doctor@other-clinic.vn', fullName: 'BS. Phòng Khám Khác', role: Role.DOCTOR, passwordHash },
   });
   await prisma.patient.create({
     data: {
