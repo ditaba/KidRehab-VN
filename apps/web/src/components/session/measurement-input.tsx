@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 import { Button, ProgressBar } from '@/components/ui';
 import { formatValue } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 import { progressPercent } from '@/lib/progress';
 import type { Measurement, SessionDetail } from '@/lib/types';
 
@@ -27,6 +28,7 @@ export function MeasurementInput({
   onSave: (value: number) => void;
   onRemove: () => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState(measurement ? String(measurement.value) : '');
   useEffect(() => setDraft(measurement ? String(measurement.value) : ''), [measurement]);
 
@@ -41,12 +43,12 @@ export function MeasurementInput({
         <div>
           <p className="font-medium text-slate-900">{goal.metricName}</p>
           <p className="text-sm text-slate-500">
-            {goal.title} · baseline {formatValue(goal.baselineValue, goal.unit)} · target {formatValue(goal.targetValue, goal.unit)}
+            {t('sessions.goalSummary', { title: goal.title, baseline: formatValue(goal.baselineValue, goal.unit), target: formatValue(goal.targetValue, goal.unit) })}
           </p>
         </div>
         {previous && (
           <span className="text-sm text-slate-500">
-            Last time: <strong className="text-slate-700">{formatValue(previous.value, goal.unit)}</strong>
+            {t('sessions.lastTime')} <strong className="text-slate-700">{formatValue(previous.value, goal.unit)}</strong>
           </span>
         )}
       </div>
@@ -60,19 +62,19 @@ export function MeasurementInput({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && dirty && onSave(num!)}
-            placeholder="Value"
-            aria-label={`${goal.metricName} value`}
+            placeholder={t('sessions.valuePlaceholder')}
+            aria-label={t('sessions.valueAria', { metric: goal.metricName })}
             className="input pr-20 text-lg font-semibold tabular-nums"
           />
           <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-500">{goal.unit}</span>
         </div>
         {!disabled && (
           <Button variant={measurement && !dirty ? 'secondary' : 'success'} disabled={!dirty} loading={saving} onClick={() => onSave(num!)} className="min-w-[96px]">
-            {measurement && !dirty ? 'Saved ✓' : 'Save'}
+            {measurement && !dirty ? t('sessions.saved') : t('common.save')}
           </Button>
         )}
         {!disabled && measurement && (
-          <Button variant="ghost" onClick={onRemove} aria-label="Remove measurement">
+          <Button variant="ghost" onClick={onRemove} aria-label={t('sessions.removeMeasurement')}>
             ✕
           </Button>
         )}

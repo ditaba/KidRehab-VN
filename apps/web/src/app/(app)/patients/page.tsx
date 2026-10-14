@@ -24,10 +24,12 @@ import { patientStatusTone } from '@/lib/labels';
 import { can } from '@/lib/permissions';
 import type { Paginated, PatientListItem, PatientStatus } from '@/lib/types';
 import { useDebounce } from '@/lib/use-debounce';
+import { enumLabel, useT } from '@/lib/i18n';
 
 export default function PatientsPage() {
   const me = useMe();
   const router = useRouter();
+  const t = useT();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<PatientStatus | ''>('ACTIVE');
   const [therapistId, setTherapistId] = useState('');
@@ -52,35 +54,35 @@ export default function PatientsPage() {
   return (
     <>
       <PageHeader
-        title="Patients"
-        subtitle={data ? `${data.total} patient${data.total === 1 ? '' : 's'}` : undefined}
-        actions={can(me.role, 'patient.create') && <LinkButton href="/patients/new">New patient</LinkButton>}
+        title={t('patients.patients')}
+        subtitle={data ? t(data.total === 1 ? 'patients.patientCountOne' : 'patients.patientCountOther', { count: data.total }) : undefined}
+        actions={can(me.role, 'patient.create') && <LinkButton href="/patients/new">{t('patients.newPatient')}</LinkButton>}
       />
 
       <Card className="mb-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Input
             type="search"
-            placeholder="Search name or patient code"
+            placeholder={t('patients.searchPlaceholder')}
             value={search}
             onChange={(e) => resetPage(setSearch)(e.target.value)}
-            aria-label="Search patients"
+            aria-label={t('patients.searchAria')}
           />
-          <Select value={status} onChange={(e) => resetPage(setStatus)(e.target.value as PatientStatus | '')} aria-label="Status">
-            <option value="">All statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-            <option value="DISCHARGED">Discharged</option>
+          <Select value={status} onChange={(e) => resetPage(setStatus)(e.target.value as PatientStatus | '')} aria-label={t('common.status')}>
+            <option value="">{t('patients.allStatuses')}</option>
+            <option value="ACTIVE">{enumLabel('ACTIVE')}</option>
+            <option value="INACTIVE">{enumLabel('INACTIVE')}</option>
+            <option value="DISCHARGED">{enumLabel('DISCHARGED')}</option>
           </Select>
-          <Select value={therapistId} onChange={(e) => resetPage(setTherapistId)(e.target.value)} aria-label="Therapist">
-            <option value="">All therapists</option>
-            {clinicians.data?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.fullName}
+          <Select value={therapistId} onChange={(e) => resetPage(setTherapistId)(e.target.value)} aria-label={t('patients.therapist')}>
+            <option value="">{t('patients.allTherapists')}</option>
+            {clinicians.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.fullName}
               </option>
             ))}
           </Select>
-          <Input placeholder="Diagnosis" value={diagnosis} onChange={(e) => resetPage(setDiagnosis)(e.target.value)} aria-label="Diagnosis" />
+          <Input placeholder={t('patients.diagnosis')} value={diagnosis} onChange={(e) => resetPage(setDiagnosis)(e.target.value)} aria-label={t('patients.diagnosis')} />
         </div>
       </Card>
 
@@ -88,9 +90,9 @@ export default function PatientsPage() {
       {error && <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />}
       {data && data.data.length === 0 && (
         <EmptyState
-          title="No patients found"
-          description={search || diagnosis || therapistId ? 'Try a different search or clear the filters.' : 'Patients you create will appear here.'}
-          action={can(me.role, 'patient.create') && <LinkButton href="/patients/new">Create the first patient</LinkButton>}
+          title={t('patients.noPatientsFound')}
+          description={search || diagnosis || therapistId ? t('patients.noPatientsFiltered') : t('patients.noPatientsYet')}
+          action={can(me.role, 'patient.create') && <LinkButton href="/patients/new">{t('patients.createFirstPatient')}</LinkButton>}
         />
       )}
       {data && data.data.length > 0 && (
@@ -99,13 +101,13 @@ export default function PatientsPage() {
             <table className="table-base">
               <thead className="border-b border-slate-100 bg-slate-50">
                 <tr>
-                  <th>Patient</th>
-                  <th>Age</th>
-                  <th>Diagnosis</th>
-                  <th>Therapist</th>
-                  <th>Status</th>
-                  <th>Last Session</th>
-                  <th>Next Appointment</th>
+                  <th>{t('patients.patient')}</th>
+                  <th>{t('patients.age')}</th>
+                  <th>{t('patients.diagnosis')}</th>
+                  <th>{t('patients.therapist')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('patients.colLastSession')}</th>
+                  <th>{t('patients.colNextAppointment')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -117,11 +119,11 @@ export default function PatientsPage() {
                       </Link>
                       <div className="text-xs text-slate-500">{p.patientCode}</div>
                     </td>
-                    <td className="tabular-nums">{p.age} y</td>
+                    <td className="tabular-nums">{t('patients.ageShort', { age: p.age })}</td>
                     <td className="max-w-[16rem] truncate" title={p.diagnosis ?? undefined}>
                       {p.diagnosis ?? <span className="text-slate-400">—</span>}
                     </td>
-                    <td>{p.therapist?.fullName ?? <span className="text-slate-400">Unassigned</span>}</td>
+                    <td>{p.therapist?.fullName ?? <span className="text-slate-400">{t('patients.unassigned')}</span>}</td>
                     <td>
                       <StatusBadge status={p.status} tones={patientStatusTone} />
                     </td>

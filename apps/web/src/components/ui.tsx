@@ -13,6 +13,7 @@ import {
 } from 'react';
 import type { Tone } from '@/lib/labels';
 import { humanize } from '@/lib/format';
+import { t } from '@/lib/i18n';
 import { progressTone } from '@/lib/progress';
 
 // ---- Buttons -----------------------------------------------------------------
@@ -201,7 +202,7 @@ export function Spinner({ className }: { className?: string }) {
   );
 }
 
-export function Loading({ label = 'Loading…' }: { label?: string }) {
+export function Loading({ label = t('common.loading') }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-3 py-16 text-slate-500" role="status">
       <Spinner className="h-6 w-6 text-primary-500" />
@@ -216,7 +217,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
       <p className="font-medium text-red-700">{message}</p>
       {onRetry && (
         <Button variant="secondary" onClick={onRetry}>
-          Try again
+          {t('common.tryAgain')}
         </Button>
       )}
     </div>
@@ -360,7 +361,7 @@ export function Modal({
       >
         <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2>{title}</h2>
-          <button onClick={onClose} className="min-h-touch min-w-touch rounded-xl text-2xl leading-none text-slate-400 hover:bg-slate-100" aria-label="Close">
+          <button onClick={onClose} className="min-h-touch min-w-touch rounded-xl text-2xl leading-none text-slate-400 hover:bg-slate-100" aria-label={t('common.close')}>
             ×
           </button>
         </header>
@@ -376,14 +377,14 @@ export function Pagination({ page, totalPages, onChange }: { page: number; total
   return (
     <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-sm">
       <span className="text-slate-500">
-        Page {page} of {totalPages}
+        {t('common.pageOf', { page, total: totalPages })}
       </span>
       <div className="flex gap-2">
         <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
-          Previous
+          {t('common.previous')}
         </Button>
         <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
-          Next
+          {t('common.next')}
         </Button>
       </div>
     </div>
@@ -391,5 +392,5 @@ export function Pagination({ page, totalPages, onChange }: { page: number; total
 }
 
 export function NoAccess() {
-  return <EmptyState title="No access" description="Your role does not have access to this section." />;
+  return <EmptyState title={t('common.noAccess')} description={t('common.noAccessDescription')} />;
 }

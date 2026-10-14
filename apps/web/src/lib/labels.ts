@@ -1,3 +1,4 @@
+import { enumLabel } from './i18n';
 import type {
   AppointmentStatus,
   AssistanceLevel,
@@ -30,27 +31,40 @@ export const appointmentStatusTone: Record<AppointmentStatus, Tone> = {
   NO_SHOW: 'red',
 };
 
+/** Option whose label follows the active language (read at render time). */
+function option<T extends string>(value: T): { value: T; readonly label: string };
+function option<T extends string>(value: T, icon: string): { value: T; readonly label: string; icon: string };
+function option<T extends string>(value: T, icon?: string) {
+  return {
+    value,
+    ...(icon !== undefined && { icon }),
+    get label() {
+      return enumLabel(value);
+    },
+  };
+}
+
 export const MOODS: { value: Mood; label: string; icon: string }[] = [
-  { value: 'HAPPY', label: 'Happy', icon: '😄' },
-  { value: 'CALM', label: 'Calm', icon: '🙂' },
-  { value: 'NEUTRAL', label: 'Neutral', icon: '😐' },
-  { value: 'IRRITABLE', label: 'Irritable', icon: '😣' },
-  { value: 'UPSET', label: 'Upset', icon: '😢' },
+  option('HAPPY', '😄'),
+  option('CALM', '🙂'),
+  option('NEUTRAL', '😐'),
+  option('IRRITABLE', '😣'),
+  option('UPSET', '😢'),
 ];
 
 export const TOLERANCES: { value: Tolerance; label: string }[] = [
-  { value: 'GOOD', label: 'Good' },
-  { value: 'FAIR', label: 'Fair' },
-  { value: 'POOR', label: 'Poor' },
+  option('GOOD'),
+  option('FAIR'),
+  option('POOR'),
 ];
 
 export const ASSISTANCE: { value: AssistanceLevel; label: string }[] = [
-  { value: 'INDEPENDENT', label: 'Independent' },
-  { value: 'SUPERVISION', label: 'Supervision' },
-  { value: 'MINIMAL', label: 'Minimal' },
-  { value: 'MODERATE', label: 'Moderate' },
-  { value: 'MAXIMAL', label: 'Maximal' },
-  { value: 'DEPENDENT', label: 'Dependent' },
+  option('INDEPENDENT'),
+  option('SUPERVISION'),
+  option('MINIMAL'),
+  option('MODERATE'),
+  option('MAXIMAL'),
+  option('DEPENDENT'),
 ];
 
 export const EXERCISE_CATEGORIES: ExerciseCategory[] = [

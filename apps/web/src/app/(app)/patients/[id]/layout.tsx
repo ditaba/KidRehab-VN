@@ -11,25 +11,27 @@ import { humanize, patientName } from '@/lib/format';
 import { patientStatusTone } from '@/lib/labels';
 import { usePatient, usePatientId } from '@/lib/patient';
 import { can } from '@/lib/permissions';
+import { useT } from '@/lib/i18n';
 
 export default function PatientLayout({ children }: { children: ReactNode }) {
   const id = usePatientId();
   const me = useMe();
+  const t = useT();
   const pathname = usePathname();
   const { data: patient, isLoading, error, refetch } = usePatient(id);
 
   if (isLoading) return <Loading />;
-  if (error || !patient) return <ErrorState message={errorMessage(error) || 'Patient not found'} onRetry={() => refetch()} />;
+  if (error || !patient) return <ErrorState message={errorMessage(error) || t('patients.patientNotFound')} onRetry={() => refetch()} />;
 
   const base = `/patients/${id}`;
   const tabs = [
-    { href: base, label: 'Overview' },
+    { href: base, label: t('patients.tabOverview') },
     ...(can(me.role, 'clinical.view')
       ? [
-          { href: `${base}/assessment`, label: 'Assessment' },
-          { href: `${base}/treatment`, label: 'Treatment' },
-          { href: `${base}/sessions`, label: 'Sessions' },
-          { href: `${base}/progress`, label: 'Progress' },
+          { href: `${base}/assessment`, label: t('patients.tabAssessment') },
+          { href: `${base}/treatment`, label: t('patients.tabTreatment') },
+          { href: `${base}/sessions`, label: t('patients.tabSessions') },
+          { href: `${base}/progress`, label: t('patients.tabProgress') },
         ]
       : []),
   ];
@@ -39,7 +41,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
     <>
       <div className="mb-2 text-sm">
         <Link href="/patients" className="text-slate-500 hover:text-primary-700">
-          ‹ Patients
+          {t('patients.backToPatients')}
         </Link>
       </div>
       <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -50,28 +52,28 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
           <div className="flex flex-wrap items-center gap-2">
             <h1>{patientName(patient)}</h1>
             <StatusBadge status={patient.status} tones={patientStatusTone} />
-            {patient.needsReassessment && <Badge tone="amber">Needs reassessment</Badge>}
+            {patient.needsReassessment && <Badge tone="amber">{t('patients.needsReassessment')}</Badge>}
           </div>
           <p className="text-slate-500">
-            {patient.patientCode} · {patient.age} years · {humanize(patient.gender)}
+            {patient.patientCode} · {t('patients.ageYears', { age: patient.age })} · {humanize(patient.gender)}
             {primaryDiagnosis && ` · ${primaryDiagnosis}`}
           </p>
         </div>
       </div>
-      <nav className="-mx-4 mb-6 overflow-x-auto border-b border-slate-200 px-4 sm:mx-0 sm:px-0" aria-label="Patient sections">
+      <nav className="-mx-4 mb-6 overflow-x-auto border-b border-slate-200 px-4 sm:mx-0 sm:px-0" aria-label={t('patients.sectionsAria')}>
         <ul className="flex gap-1">
-          {tabs.map((t) => {
-            const active = t.href === base ? pathname === base : pathname.startsWith(t.href);
+          {tabs.map((tab) => {
+            const active = tab.href === base ? pathname === base : pathname.startsWith(tab.href);
             return (
-              <li key={t.href}>
+              <li key={tab.href}>
                 <Link
-                  href={t.href}
+                  href={tab.href}
                   className={clsx(
                     'flex min-h-touch items-center whitespace-nowrap border-b-2 px-4 text-sm font-medium',
                     active ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-500 hover:text-slate-800',
                   )}
                 >
-                  {t.label}
+                  {tab.label}
                 </Link>
               </li>
             );

@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from '@/lib/i18n';
+
 /** Large +/- number control for tablet use. Calls onChange with null when cleared. */
 export function Stepper({
   label,
@@ -23,6 +25,7 @@ export function Stepper({
   /** Label on the left, compact control on the right (for narrow columns). */
   inline?: boolean;
 }) {
+  const t = useT();
   const set = (v: number | null) => onChange(v === null ? null : Math.min(max, Math.max(min, v)));
   return (
     <div className={inline ? 'flex items-center justify-between gap-3' : undefined}>
@@ -33,7 +36,7 @@ export function Stepper({
           disabled={disabled || (value ?? 0) <= min}
           onClick={() => set((value ?? 0) - step)}
           className="min-h-touch min-w-touch text-xl font-medium text-slate-600 hover:bg-slate-100 disabled:text-slate-300"
-          aria-label={`Decrease ${label}`}
+          aria-label={t('sessions.decrease', { label })}
         >
           −
         </button>
@@ -52,7 +55,7 @@ export function Stepper({
           disabled={disabled || (value ?? 0) >= max}
           onClick={() => set((value ?? 0) + step)}
           className="min-h-touch min-w-touch text-xl font-medium text-slate-600 hover:bg-slate-100 disabled:text-slate-300"
-          aria-label={`Increase ${label}`}
+          aria-label={t('sessions.increase', { label })}
         >
           +
         </button>

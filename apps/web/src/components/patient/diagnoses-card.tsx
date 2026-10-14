@@ -7,9 +7,11 @@ import { api, errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/auth';
 import { can } from '@/lib/permissions';
 import type { Diagnosis } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 export function DiagnosesCard({ patientId, diagnoses }: { patientId: string; diagnoses: Diagnosis[] }) {
   const me = useMe();
+  const t = useT();
   const editable = can(me.role, 'diagnosis.edit');
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
@@ -37,41 +39,41 @@ export function DiagnosesCard({ patientId, diagnoses }: { patientId: string; dia
 
   return (
     <Card
-      title="Diagnosis"
+      title={t('patients.diagnosis')}
       actions={
         editable && (
           <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
-            + Add
+            {t('patients.addShort')}
           </Button>
         )
       }
     >
       {diagnoses.length === 0 ? (
-        <p className="text-sm text-slate-500">No diagnosis recorded.</p>
+        <p className="text-sm text-slate-500">{t('patients.noDiagnosis')}</p>
       ) : (
         <ul className="space-y-3">
           {diagnoses.map((d) => (
             <li key={d.id} className="flex items-start justify-between gap-2">
               <div>
                 <p className="font-medium">
-                  {d.name} {d.isPrimary && <Badge tone="blue">Primary</Badge>}
+                  {d.name} {d.isPrimary && <Badge tone="blue">{t('patients.primary')}</Badge>}
                 </p>
-                {d.icdCode && <p className="text-sm text-slate-500">ICD-10 {d.icdCode}</p>}
+                {d.icdCode && <p className="text-sm text-slate-500">{t('patients.icdLine', { code: d.icdCode })}</p>}
               </div>
               {editable && (
                 <div className="flex shrink-0 gap-1">
                   {!d.isPrimary && (
                     <Button variant="ghost" size="sm" onClick={() => makePrimary.mutate(d.id)}>
-                      Make primary
+                      {t('patients.makePrimary')}
                     </Button>
                   )}
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-red-600"
-                    onClick={() => confirm(`Remove diagnosis "${d.name}"?`) && remove.mutate(d.id)}
+                    onClick={() => confirm(t('patients.confirmRemoveDiagnosis', { name: d.name })) && remove.mutate(d.id)}
                   >
-                    Remove
+                    {t('common.remove')}
                   </Button>
                 </div>
               )}
@@ -82,24 +84,24 @@ export function DiagnosesCard({ patientId, diagnoses }: { patientId: string; dia
       <Modal
         open={adding}
         onClose={() => setAdding(false)}
-        title="Add diagnosis"
+        title={t('patients.addDiagnosis')}
         footer={
           <>
             <Button variant="secondary" onClick={() => setAdding(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button disabled={!name.trim()} loading={add.isPending} onClick={() => add.mutate()}>
-              Save
+              {t('common.save')}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
           <FormError message={add.error ? errorMessage(add.error) : null} />
-          <Field label="Diagnosis" required>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Cerebral Palsy – spastic diplegia" />
+          <Field label={t('patients.diagnosis')} required>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('patients.diagnosisInputPlaceholder')} />
           </Field>
-          <Field label="ICD-10 code">
+          <Field label={t('patients.icdCode')}>
             <Input value={icdCode} onChange={(e) => setIcd(e.target.value)} placeholder="G80.1" />
           </Field>
         </div>

@@ -12,6 +12,7 @@ import { api, errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/auth';
 import { formatDate, formatDateTime, formatPrescription, formatValue, humanize, patientName } from '@/lib/format';
 import { ASSISTANCE, MOODS, sessionStatusTone, TOLERANCES } from '@/lib/labels';
+import { useT } from '@/lib/i18n';
 import type { Exercise, SessionDetail, SessionExercise } from '@/lib/types';
 
 type Patch = Partial<
@@ -21,6 +22,7 @@ type Patch = Partial<
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
   const me = useMe();
+  const t = useT();
   const qc = useQueryClient();
   const key = ['session', id];
   const { data: session, isLoading, error, refetch } = useQuery({ queryKey: key, queryFn: () => api<SessionDetail>(`/sessions/${id}`) });
@@ -95,13 +97,13 @@ export default function SessionPage() {
   // Autosave notes shortly after typing stops.
   useEffect(() => {
     if (!notesDirty.current || !session || session.status !== 'DRAFT') return;
-    const t = setTimeout(() => patch.mutate({ notes }), 1200);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => patch.mutate({ notes }), 1200);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes]);
 
   if (isLoading) return <Loading />;
-  if (error || !session) return <ErrorState message={errorMessage(error) || 'Session not found'} onRetry={() => refetch()} />;
+  if (error || !session) return <ErrorState message={errorMessage(error) || t('sessions.notFound')} onRetry={() => refetch()} />;
 
   const editable = session.status === 'DRAFT' && (me.role === 'DOCTOR' || (me.role === 'THERAPIST' && session.therapistId === me.id));
   const measurementFor = (metricId?: string) => session.measurements.find((m) => m.progressMetricId === metricId);
@@ -124,34 +126,34 @@ export default function SessionPage() {
             <StatusBadge status={session.status} tones={sessionStatusTone} />
           </div>
           <p className="text-slate-500">
-            {session.patient.age} y{diagnosis && ` · ${diagnosis}`} · {formatDateTime(session.sessionDate)} · {session.therapist.fullName}
+            {t('sessions.ageShort', { age: session.patient.age })}{diagnosis && ` · ${diagnosis}`} · {formatDateTime(session.sessionDate)} · {session.therapist.fullName}
           </p>
         </div>
-        {editable && <span className="text-sm text-slate-400">{saving ? 'Saving…' : 'All changes saved'}</span>}
+        {editable && <span className="text-sm text-slate-400">{saving ? t('common.saving') : t('sessions.allSaved')}</span>}
       </div>
 
       {session.status === 'COMPLETED' && (
         <div className="mb-6 rounded-2xl border border-success-200 bg-success-50 px-5 py-4 text-success-700">
-          Session completed {formatDateTime(session.completedAt)}. Goal values have been updated.{' '}
+          {t('sessions.completedBanner', { date: formatDateTime(session.completedAt) })}{' '}
           <Link href={`/patients/${session.patientId}/progress`} className="font-medium underline">
-            View progress
+            {t('sessions.viewProgress')}
           </Link>
         </div>
       )}
       {session.status === 'DRAFT' && !editable && (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-800">
-          This draft is being documented by {session.therapist.fullName}. You can view it but not edit it.
+          {t('sessions.readOnlyDraft', { name: session.therapist.fullName })}
         </div>
       )}
       <FormError message={saveError} />
 
       <div className="mt-4 grid gap-6 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-3">
-          <Card title="Measurements" actions={session.activePlan && <span className="text-sm text-slate-500">{session.activePlan.title}</span>}>
+          <Card title={t('sessions.measurements')} actions={session.activePlan && <span className="text-sm text-slate-500">{session.activePlan.title}</span>}>
             {session.goals.length === 0 ? (
               <EmptyState
-                title="No active goals"
-                description="A doctor needs to create a treatment plan with measurable goals before measurements can be recorded."
+                title={t('sessions.noActiveGoals')}
+                description={t('sessions.noActiveGoalsHint')}
               />
             ) : (
               <div className="space-y-3">
@@ -174,11 +176,11 @@ export default function SessionPage() {
             )}
           </Card>
 
-          <Card title="Observations">
+          <Card title={t('sessions.observations')}>
             <div className="space-y-5">
-              <Observation label="Pain" hint="0 = no pain, 10 = worst">
+              <Observation label={t('sessions.pain')} hint={t('sessions.painHint')}>
                 <ChoiceGroup
-                  ariaLabel="Pain"
+                  ariaLabel={t('sessions.pain')}
                   columns={11}
                   disabled={!editable}
                   value={session.painScore}
@@ -186,18 +188,18 @@ export default function SessionPage() {
                   options={Array.from({ length: 11 }, (_, i) => ({ value: i, label: i }))}
                 />
               </Observation>
-              <Observation label="Energy" hint="1 = very low, 5 = high">
+              <Observation label={t('sessions.energy')} hint={t('sessions.energyHint')}>
                 <ChoiceGroup
-                  ariaLabel="Energy"
+                  ariaLabel={t('sessions.energy')}
                   disabled={!editable}
                   value={session.energyLevel}
                   onChange={(v) => patch.mutate({ energyLevel: v })}
                   options={[1, 2, 3, 4, 5].map((v) => ({ value: v, label: v }))}
                 />
               </Observation>
-              <Observation label="Mood">
+              <Observation label={t('sessions.mood')}>
                 <ChoiceGroup
-                  ariaLabel="Mood"
+                  ariaLabel={t('sessions.mood')}
                   disabled={!editable}
                   value={session.mood}
                   onChange={(v) => patch.mutate({ mood: v })}
@@ -214,18 +216,18 @@ export default function SessionPage() {
                   }))}
                 />
               </Observation>
-              <Observation label="Tolerance">
+              <Observation label={t('sessions.tolerance')}>
                 <ChoiceGroup
-                  ariaLabel="Tolerance"
+                  ariaLabel={t('sessions.tolerance')}
                   disabled={!editable}
                   value={session.tolerance}
                   onChange={(v) => patch.mutate({ tolerance: v })}
                   options={TOLERANCES}
                 />
               </Observation>
-              <Observation label="Assistance">
+              <Observation label={t('sessions.assistance')}>
                 <ChoiceGroup
-                  ariaLabel="Assistance level"
+                  ariaLabel={t('sessions.assistanceLevel')}
                   columns={3}
                   disabled={!editable}
                   value={session.assistanceLevel}
@@ -235,7 +237,7 @@ export default function SessionPage() {
               </Observation>
               <div className="max-w-[16rem]">
                 <Stepper
-                  label="Duration (min)"
+                  label={t('sessions.durationMin')}
                   step={5}
                   min={0}
                   max={480}
@@ -250,17 +252,17 @@ export default function SessionPage() {
 
         <div className="space-y-6 lg:col-span-2">
           <Card
-            title={`Exercises (${session.exercises.length})`}
+            title={t('sessions.exercisesCount', { count: session.exercises.length })}
             actions={
               editable && (
                 <Button variant="secondary" onClick={() => setPickerOpen(true)}>
-                  + Add exercise
+                  {t('sessions.addExerciseButton')}
                 </Button>
               )
             }
           >
             {session.exercises.length === 0 ? (
-              <p className="text-sm text-slate-500">No exercises added.</p>
+              <p className="text-sm text-slate-500">{t('sessions.noExercises')}</p>
             ) : (
               <ul className="space-y-4">
                 {session.exercises.map((e) => (
@@ -268,8 +270,8 @@ export default function SessionPage() {
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-medium">{e.exerciseName}</p>
                       {editable ? (
-                        <Button variant="ghost" size="sm" onClick={() => removeExercise.mutate(e.id)} aria-label={`Remove ${e.exerciseName}`}>
-                          Remove
+                        <Button variant="ghost" size="sm" onClick={() => removeExercise.mutate(e.id)} aria-label={t('sessions.removeItem', { name: e.exerciseName })}>
+                          {t('common.remove')}
                         </Button>
                       ) : (
                         <span className="text-sm text-slate-500">{formatPrescription(e)}</span>
@@ -277,10 +279,10 @@ export default function SessionPage() {
                     </div>
                     {editable && (
                       <div className="mt-2 space-y-2">
-                        <Stepper label="Sets" inline value={e.sets} max={100} onChange={(v) => updateExercise.mutate({ seId: e.id, body: { sets: v } })} />
-                        <Stepper label="Reps" inline value={e.repetitions} max={1000} onChange={(v) => updateExercise.mutate({ seId: e.id, body: { repetitions: v } })} />
+                        <Stepper label={t('sessions.sets')} inline value={e.sets} max={100} onChange={(v) => updateExercise.mutate({ seId: e.id, body: { sets: v } })} />
+                        <Stepper label={t('sessions.reps')} inline value={e.repetitions} max={1000} onChange={(v) => updateExercise.mutate({ seId: e.id, body: { repetitions: v } })} />
                         <Stepper
-                          label="Seconds" inline
+                          label={t('sessions.seconds')} inline
                           step={5}
                           value={e.durationSeconds}
                           max={7200}
@@ -294,12 +296,12 @@ export default function SessionPage() {
             )}
           </Card>
 
-          <Card title="Session notes">
+          <Card title={t('sessions.sessionNotes')}>
             <Textarea
               rows={5}
               disabled={!editable}
               value={notes}
-              placeholder={editable ? 'What went well, what to adjust next time, home program…' : 'No notes'}
+              placeholder={editable ? t('sessions.notesPlaceholder') : t('sessions.noNotes')}
               onChange={(e) => {
                 notesDirty.current = true;
                 setNotes(e.target.value);
@@ -308,7 +310,7 @@ export default function SessionPage() {
             />
           </Card>
 
-          <Card title="Previous session">
+          <Card title={t('sessions.previousSession')}>
             {session.previousSession ? (
               <div className="space-y-2 text-sm">
                 <p className="font-medium text-slate-900">
@@ -318,9 +320,9 @@ export default function SessionPage() {
                   · {session.previousSession.therapist.fullName}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {session.previousSession.tolerance && <Badge>Tolerance: {humanize(session.previousSession.tolerance)}</Badge>}
-                  {session.previousSession.assistanceLevel && <Badge>Assistance: {humanize(session.previousSession.assistanceLevel)}</Badge>}
-                  {session.previousSession.painScore !== null && <Badge>Pain: {session.previousSession.painScore}/10</Badge>}
+                  {session.previousSession.tolerance && <Badge>{t('sessions.prevTolerance', { value: humanize(session.previousSession.tolerance) })}</Badge>}
+                  {session.previousSession.assistanceLevel && <Badge>{t('sessions.prevAssistance', { value: humanize(session.previousSession.assistanceLevel) })}</Badge>}
+                  {session.previousSession.painScore !== null && <Badge>{t('sessions.prevPain', { value: session.previousSession.painScore })}</Badge>}
                 </div>
                 {session.previousSession.measurements.length > 0 && (
                   <p className="text-slate-600">
@@ -333,7 +335,7 @@ export default function SessionPage() {
                 {session.previousSession.notes && <p className="whitespace-pre-line text-slate-700">{session.previousSession.notes}</p>}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">This is the first documented session.</p>
+              <p className="text-sm text-slate-500">{t('sessions.firstSession')}</p>
             )}
           </Card>
         </div>
@@ -345,12 +347,12 @@ export default function SessionPage() {
             <Button
               variant="ghost"
               className="text-red-600"
-              onClick={() => confirm('Cancel this session? It will be kept as cancelled.') && patch.mutate({ status: 'CANCELLED' })}
+              onClick={() => confirm(t('sessions.cancelConfirm')) && patch.mutate({ status: 'CANCELLED' })}
             >
-              Cancel session
+              {t('sessions.cancelSession')}
             </Button>
             <Button size="lg" variant="success" onClick={() => setReviewOpen(true)}>
-              Review & complete
+              {t('sessions.reviewComplete')}
             </Button>
           </div>
         </div>
@@ -370,22 +372,22 @@ export default function SessionPage() {
       <Modal
         open={reviewOpen}
         onClose={() => setReviewOpen(false)}
-        title="Complete session"
+        title={t('sessions.completeTitle')}
         size="lg"
         footer={
           <>
             <Button variant="secondary" onClick={() => setReviewOpen(false)}>
-              Keep editing
+              {t('sessions.keepEditing')}
             </Button>
             <Button variant="success" size="lg" loading={complete.isPending} onClick={() => complete.mutate()}>
-              Complete Session
+              {t('sessions.completeButton')}
             </Button>
           </>
         }
       >
         <div className="space-y-5">
           <FormError message={complete.error ? errorMessage(complete.error) : null} />
-          <ReviewSection title="Exercises performed">
+          <ReviewSection title={t('sessions.exercisesPerformed')}>
             {session.exercises.length ? (
               <ul className="list-inside list-disc">
                 {session.exercises.map((e) => (
@@ -395,10 +397,10 @@ export default function SessionPage() {
                 ))}
               </ul>
             ) : (
-              <span className="text-slate-400">None</span>
+              <span className="text-slate-400">{t('common.none')}</span>
             )}
           </ReviewSection>
-          <ReviewSection title="Measurements">
+          <ReviewSection title={t('sessions.measurements')}>
             {session.measurements.length ? (
               <ul className="list-inside list-disc">
                 {session.measurements.map((m) => (
@@ -408,14 +410,14 @@ export default function SessionPage() {
                 ))}
               </ul>
             ) : (
-              <span className="text-amber-700">No measurements recorded — goal progress will not be updated.</span>
+              <span className="text-amber-700">{t('sessions.noMeasurementsWarning')}</span>
             )}
           </ReviewSection>
-          <ReviewSection title="Tolerance">{session.tolerance ? humanize(session.tolerance) : <span className="text-slate-400">Not recorded</span>}</ReviewSection>
-          <ReviewSection title="Notes">
-            {notes ? <span className="whitespace-pre-line">{notes}</span> : <span className="text-slate-400">No notes</span>}
+          <ReviewSection title={t('sessions.tolerance')}>{session.tolerance ? humanize(session.tolerance) : <span className="text-slate-400">{t('common.notRecorded')}</span>}</ReviewSection>
+          <ReviewSection title={t('common.notes')}>
+            {notes ? <span className="whitespace-pre-line">{notes}</span> : <span className="text-slate-400">{t('sessions.noNotes')}</span>}
           </ReviewSection>
-          <p className="text-sm text-slate-500">Completed sessions can no longer be edited and remain in the patient history.</p>
+          <p className="text-sm text-slate-500">{t('sessions.completedLocked')}</p>
         </div>
       </Modal>
     </div>

@@ -6,16 +6,18 @@ import { useState } from 'react';
 import { Button, EmptyState, ErrorState, Loading, NoAccess, Pagination, StatusBadge } from '@/components/ui';
 import { api, errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/auth';
-import { formatDateTime, formatValue, humanize } from '@/lib/format';
+import { formatDateTime, formatValue } from '@/lib/format';
 import { useStartSession } from '@/lib/hooks';
 import { sessionStatusTone } from '@/lib/labels';
 import { usePatientId } from '@/lib/patient';
 import { can } from '@/lib/permissions';
 import type { Paginated, SessionListItem } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 export default function PatientSessionsPage() {
   const id = usePatientId();
   const me = useMe();
+  const t = useT();
   const [page, setPage] = useState(1);
   const start = useStartSession();
   const { data, isLoading, error, refetch } = useQuery({
@@ -30,17 +32,17 @@ export default function PatientSessionsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-slate-500">{data ? `${data.total} session${data.total === 1 ? '' : 's'}` : ' '}</p>
+        <p className="text-slate-500">{data ? t(data.total === 1 ? 'progress.sessionsOne' : 'progress.sessionsOther', { count: data.total }) : ' '}</p>
         {can(me.role, 'session.write') && (
           <Button loading={start.isPending} onClick={() => start.mutate({ patientId: id })}>
-            Start new session
+            {t('progress.startNewSession')}
           </Button>
         )}
       </div>
       {start.error && <p className="text-sm text-red-600">{errorMessage(start.error)}</p>}
       {isLoading && <Loading />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />}
-      {data && data.data.length === 0 && <EmptyState title="No sessions yet" description="Documented therapy sessions will appear here." />}
+      {data && data.data.length === 0 && <EmptyState title={t('progress.noSessionsTitle')} description={t('progress.noSessionsDescription')} />}
       {data && data.data.length > 0 && (
         <div className="card overflow-hidden">
           <ul className="divide-y divide-slate-100">
@@ -53,8 +55,8 @@ export default function PatientSessionsPage() {
                       <span className="text-sm text-slate-500">
                         {' '}
                         · {s.therapist.fullName}
-                        {s.durationMinutes && ` · ${s.durationMinutes} min`}
-                        {s.tolerance && ` · tolerance ${humanize(s.tolerance).toLowerCase()}`}
+                        {s.durationMinutes && ` · ${t('common.unitMinutes', { n: s.durationMinutes })}`}
+                        {s.tolerance && ` · ${t(`progress.tolerance${s.tolerance}`)}`}
                       </span>
                     </div>
                     <StatusBadge status={s.status} tones={sessionStatusTone} />

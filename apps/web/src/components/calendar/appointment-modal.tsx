@@ -8,6 +8,7 @@ import { api, ApiError, errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/auth';
 import { formatDateTime, humanize, patientName, toInputDate, toInputTime } from '@/lib/format';
 import { useClinicians } from '@/lib/hooks';
+import { useT } from '@/lib/i18n';
 import { APPOINTMENT_STATUSES } from '@/lib/labels';
 import { can } from '@/lib/permissions';
 import type { Appointment, AppointmentStatus, PatientRef } from '@/lib/types';
@@ -32,6 +33,7 @@ export function AppointmentModal({
   onClose: () => void;
 }) {
   const me = useMe();
+  const t = useT();
   const qc = useQueryClient();
   const clinicians = useClinicians();
   const clinic = useQuery({ queryKey: ['clinic'], queryFn: () => api<{ defaultAppointmentMinutes: number }>('/clinic') });
@@ -80,11 +82,11 @@ export function AppointmentModal({
 
   const submit = (force = false) => {
     const errs: Record<string, string> = {};
-    if (!patient) errs.patient = 'Patient is required';
-    if (!therapistId) errs.therapist = 'Therapist is required';
-    if (!date || !time) errs.date = 'Date and time are required';
+    if (!patient) errs.patient = t('calendar.patientRequired');
+    if (!therapistId) errs.therapist = t('calendar.therapistRequired');
+    if (!date || !time) errs.date = t('calendar.dateTimeRequired');
     const d = Number(effectiveDuration);
-    if (!Number.isInteger(d) || d < 5 || d > 240) errs.duration = 'Duration must be 5–240 minutes';
+    if (!Number.isInteger(d) || d < 5 || d > 240) errs.duration = t('calendar.durationRange');
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setConflicts(null);
@@ -97,31 +99,31 @@ export function AppointmentModal({
     <Modal
       open
       onClose={onClose}
-      title={appointment ? (editable ? 'Edit appointment' : 'Appointment') : 'New appointment'}
+      title={appointment ? (editable ? t('calendar.editAppointment') : t('calendar.appointment')) : t('calendar.newAppointment')}
       footer={
         editable ? (
           <>
             {appointment?.session && (
               <LinkButton href={`/sessions/${appointment.session.id}`} variant="ghost" className="mr-auto">
-                Open session
+                {t('calendar.openSession')}
               </LinkButton>
             )}
             <Button variant="secondary" onClick={onClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             {conflicts ? (
               <Button variant="danger" loading={save.isPending} onClick={() => submit(true)}>
-                Book anyway
+                {t('calendar.bookAnyway')}
               </Button>
             ) : (
               <Button loading={save.isPending} onClick={() => submit(false)}>
-                Save
+                {t('common.save')}
               </Button>
             )}
           </>
         ) : (
           <Button variant="secondary" onClick={onClose}>
-            Close
+            {t('common.close')}
           </Button>
         )
       }
@@ -130,42 +132,42 @@ export function AppointmentModal({
         {showError && <FormError message={errorMessage(save.error)} />}
         {conflicts && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
-            <p className="font-semibold">This therapist already has an overlapping appointment:</p>
+            <p className="font-semibold">{t('calendar.conflictTitle')}</p>
             <ul className="mt-1 list-inside list-disc">
               {conflicts.map((c) => (
                 <li key={c.id}>
-                  {formatDateTime(c.startAt)} ({c.durationMinutes} min) — {patientName(c.patient)}
+                  {formatDateTime(c.startAt)} ({t('common.unitMinutes', { n: c.durationMinutes })}) — {patientName(c.patient)}
                 </li>
               ))}
             </ul>
-            <p className="mt-1">Change the time or therapist, or choose “Book anyway”.</p>
+            <p className="mt-1">{t('calendar.conflictHint')}</p>
           </div>
         )}
-        <Field label="Patient" required error={errors.patient}>
+        <Field label={t('calendar.patient')} required error={errors.patient}>
           {appointment || !editable ? (
             <div className="input flex items-center bg-slate-50">{patient ? patientName(patient) : '—'}</div>
           ) : (
             <PatientPicker value={patient} onChange={setPatient} />
           )}
         </Field>
-        <Field label="Therapist" required error={errors.therapist}>
+        <Field label={t('calendar.therapist')} required error={errors.therapist}>
           <Select value={therapistId} disabled={!editable} onChange={(e) => (setTherapistId(e.target.value), setConflicts(null))}>
-            <option value="">Select therapist</option>
-            {clinicians.data?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.fullName} ({humanize(t.role)})
+            <option value="">{t('calendar.selectTherapist')}</option>
+            {clinicians.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.fullName} ({humanize(c.role)})
               </option>
             ))}
           </Select>
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Date" required error={errors.date}>
+          <Field label={t('common.date')} required error={errors.date}>
             <Input type="date" value={date} disabled={!editable} onChange={(e) => (setDate(e.target.value), setConflicts(null))} />
           </Field>
-          <Field label="Start time" required>
+          <Field label={t('calendar.startTime')} required>
             <Input type="time" step={300} value={time} disabled={!editable} onChange={(e) => (setTime(e.target.value), setConflicts(null))} />
           </Field>
-          <Field label="Duration (min)" error={errors.duration} hint={!duration ? `Clinic default: ${effectiveDuration} min` : undefined}>
+          <Field label={t('calendar.durationMinutes')} error={errors.duration} hint={!duration ? t('calendar.clinicDefault', { n: effectiveDuration }) : undefined}>
             <Input
               type="number"
               inputMode="numeric"
@@ -178,7 +180,7 @@ export function AppointmentModal({
               onChange={(e) => (setDuration(e.target.value), setConflicts(null))}
             />
           </Field>
-          <Field label="Status">
+          <Field label={t('common.status')}>
             <Select value={status} disabled={!editable} onChange={(e) => setStatus(e.target.value as AppointmentStatus)}>
               {APPOINTMENT_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -188,7 +190,7 @@ export function AppointmentModal({
             </Select>
           </Field>
         </div>
-        <Field label="Notes">
+        <Field label={t('common.notes')}>
           <Textarea rows={2} value={notes} disabled={!editable} onChange={(e) => setNotes(e.target.value)} />
         </Field>
       </div>

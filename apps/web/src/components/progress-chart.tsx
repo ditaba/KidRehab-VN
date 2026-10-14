@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatDate, formatValue } from '@/lib/format';
 import type { ProgressGoal } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const SERIES = '#3b76e0'; // primary-600
 const INK_MUTED = '#64748b'; // slate-500
@@ -24,6 +25,7 @@ interface Point {
  */
 export function ProgressChart({ goal }: { goal: ProgressGoal }) {
   const router = useRouter();
+  const t = useT();
   const data: Point[] = [...goal.measurements]
     .sort((a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime())
     .map((m) => ({ t: new Date(m.measuredAt).getTime(), value: m.value, sessionId: m.sessionId, sessionDate: m.sessionDate, therapist: m.therapist }));
@@ -34,7 +36,7 @@ export function ProgressChart({ goal }: { goal: ProgressGoal }) {
   const pad = (max - min) * 0.1 || 1;
 
   return (
-    <div className="h-64 w-full sm:h-72" role="img" aria-label={`${goal.metricName} over time, target ${goal.targetValue} ${goal.unit}`}>
+    <div className="h-64 w-full sm:h-72" role="img" aria-label={t('progress.chartAriaLabel', { metric: goal.metricName, target: goal.targetValue, unit: goal.unit })}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 20, right: 56, bottom: 4, left: 0 }}>
           <CartesianGrid stroke={GRID} vertical={false} />
@@ -61,13 +63,13 @@ export function ProgressChart({ goal }: { goal: ProgressGoal }) {
             stroke={TARGET}
             strokeDasharray="6 4"
             strokeWidth={1.5}
-            label={{ value: 'Target', position: 'right', fill: TARGET, fontSize: 12, fontWeight: 600 }}
+            label={{ value: t('progress.chartTarget'), position: 'right', fill: TARGET, fontSize: 12, fontWeight: 600 }}
           />
           <ReferenceLine
             y={goal.baselineValue}
             stroke={INK_MUTED}
             strokeDasharray="2 4"
-            label={{ value: 'Baseline', position: 'right', fill: INK_MUTED, fontSize: 12 }}
+            label={{ value: t('progress.chartBaseline'), position: 'right', fill: INK_MUTED, fontSize: 12 }}
           />
           <Tooltip
             cursor={{ stroke: INK_MUTED, strokeDasharray: '3 3' }}
@@ -81,7 +83,7 @@ export function ProgressChart({ goal }: { goal: ProgressGoal }) {
                     {goal.metricName}: <strong>{formatValue(p.value, goal.unit)}</strong>
                   </p>
                   <p className="text-slate-500">
-                    Session {p.sessionDate ? formatDate(p.sessionDate) : '—'} · {p.therapist}
+                    {t('progress.tooltipSession', { date: p.sessionDate ? formatDate(p.sessionDate) : '—', therapist: p.therapist })}
                   </p>
                 </div>
               );

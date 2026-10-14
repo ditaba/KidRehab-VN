@@ -5,12 +5,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { EmptyState, ErrorState, Input, Loading, Modal } from '@/components/ui';
 import { api, errorMessage } from '@/lib/api';
+import { useT } from '@/lib/i18n';
 import { formatPrescription, humanize } from '@/lib/format';
 import { EXERCISE_CATEGORIES } from '@/lib/labels';
 import type { Exercise, ExerciseCategory } from '@/lib/types';
 
 /** US-052: pick an exercise template from the library (only ACTIVE ones). */
 export function ExercisePicker({ open, onClose, onPick, addedIds }: { open: boolean; onClose: () => void; onPick: (e: Exercise) => void; addedIds: string[] }) {
+  const t = useT();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<ExerciseCategory | null>(null);
   const { data, isLoading, error, refetch } = useQuery({
@@ -23,9 +25,9 @@ export function ExercisePicker({ open, onClose, onPick, addedIds }: { open: bool
   );
 
   return (
-    <Modal open={open} onClose={onClose} title="Add exercise" size="lg">
+    <Modal open={open} onClose={onClose} title={t('sessions.addExercise')} size="lg">
       <div className="space-y-4">
-        <Input type="search" placeholder="Search exercises" value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
+        <Input type="search" placeholder={t('sessions.searchExercises')} value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
         <div className="flex flex-wrap gap-2">
           {[null, ...EXERCISE_CATEGORIES].map((c) => (
             <button
@@ -37,13 +39,13 @@ export function ExercisePicker({ open, onClose, onPick, addedIds }: { open: bool
                 category === c ? 'border-primary-500 bg-primary-600 text-white' : 'border-slate-300 bg-white text-slate-600',
               )}
             >
-              {c ? humanize(c) : 'All'}
+              {c ? humanize(c) : t('common.all')}
             </button>
           ))}
         </div>
         {isLoading && <Loading />}
         {error && <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />}
-        {data && filtered.length === 0 && <EmptyState title="No exercises match" />}
+        {data && filtered.length === 0 && <EmptyState title={t('sessions.noExercisesMatch')} />}
         <ul className="grid gap-2 sm:grid-cols-2">
           {filtered.map((e) => {
             const added = addedIds.includes(e.id);
@@ -55,7 +57,7 @@ export function ExercisePicker({ open, onClose, onPick, addedIds }: { open: bool
                   className="flex min-h-[64px] w-full flex-col items-start rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-primary-300 hover:bg-primary-50"
                 >
                   <span className="font-medium text-slate-900">
-                    {e.name} {added && <span className="text-xs font-normal text-success-700">· added</span>}
+                    {e.name} {added && <span className="text-xs font-normal text-success-700">· {t('sessions.added')}</span>}
                   </span>
                   <span className="text-sm text-slate-500">
                     {humanize(e.category)} · {formatPrescription({ sets: e.defaultSets, repetitions: e.defaultRepetitions, durationSeconds: e.defaultDurationSeconds })}

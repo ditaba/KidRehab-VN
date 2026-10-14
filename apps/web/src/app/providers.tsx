@@ -4,8 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode, useState } from 'react';
 import { ApiError } from '@/lib/api';
 import { AuthProvider } from '@/lib/auth';
+import { I18nProvider, Locale } from '@/lib/i18n';
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ locale, children }: { locale: Locale; children: ReactNode }) {
   const [client] = useState(
     () =>
       new QueryClient({
@@ -20,7 +21,9 @@ export function Providers({ children }: { children: ReactNode }) {
   );
   return (
     <QueryClientProvider client={client}>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        <I18nProvider initialLocale={locale}>{children}</I18nProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

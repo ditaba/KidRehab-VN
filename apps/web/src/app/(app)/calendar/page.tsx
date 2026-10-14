@@ -11,8 +11,15 @@ import { useMe } from '@/lib/auth';
 import { addDays, CalendarView, sameDay, shiftAnchor, viewRange } from '@/lib/calendar';
 import { formatDate, formatTime, humanize, patientName } from '@/lib/format';
 import { useClinicians } from '@/lib/hooks';
+import { intlLocale, MessageKey, useT } from '@/lib/i18n';
 import { can } from '@/lib/permissions';
 import type { Appointment, AppointmentStatus, PatientDetail, PatientRef } from '@/lib/types';
+
+const viewLabel: Record<CalendarView, MessageKey> = {
+  day: 'calendar.viewDay',
+  week: 'calendar.viewWeek',
+  month: 'calendar.viewMonth',
+};
 
 const statusStyle: Record<AppointmentStatus, string> = {
   SCHEDULED: 'border-l-primary-500 bg-primary-50',
@@ -32,6 +39,7 @@ export default function CalendarPage() {
 
 function Calendar() {
   const me = useMe();
+  const t = useT();
   const params = useSearchParams();
   const [view, setView] = useState<CalendarView>('week');
   const [anchor, setAnchor] = useState(() => new Date());
@@ -62,34 +70,34 @@ function Calendar() {
       ? formatDate(anchor, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
       : view === 'week'
         ? `${formatDate(days[0], { year: undefined })} – ${formatDate(days[6])}`
-        : anchor.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        : anchor.toLocaleDateString(intlLocale(), { month: 'long', year: 'numeric' });
 
   const open = (a: Appointment) => setModal({ appointment: a });
 
   return (
     <>
       <PageHeader
-        title="Calendar"
-        actions={canEdit && <Button onClick={() => setModal({ appointment: null, date: view === 'day' ? withTime(anchor) : undefined })}>New appointment</Button>}
+        title={t('calendar.title')}
+        actions={canEdit && <Button onClick={() => setModal({ appointment: null, date: view === 'day' ? withTime(anchor) : undefined })}>{t('calendar.newAppointment')}</Button>}
       />
       <div className="card mb-4 flex flex-wrap items-center gap-3 p-3">
         <div className="flex gap-1">
-          <Button variant="secondary" onClick={() => setAnchor((a) => shiftAnchor(view, a, -1))} aria-label="Previous">
+          <Button variant="secondary" onClick={() => setAnchor((a) => shiftAnchor(view, a, -1))} aria-label={t('common.previous')}>
             ‹
           </Button>
           <Button variant="secondary" onClick={() => setAnchor(new Date())}>
-            Today
+            {t('calendar.today')}
           </Button>
-          <Button variant="secondary" onClick={() => setAnchor((a) => shiftAnchor(view, a, 1))} aria-label="Next">
+          <Button variant="secondary" onClick={() => setAnchor((a) => shiftAnchor(view, a, 1))} aria-label={t('common.next')}>
             ›
           </Button>
         </div>
         <h2 className="min-w-[12rem] flex-1">{title}</h2>
-        <Select value={therapistId} onChange={(e) => setTherapistId(e.target.value)} className="w-52" aria-label="Therapist">
-          <option value="">All therapists</option>
-          {clinicians.data?.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.fullName}
+        <Select value={therapistId} onChange={(e) => setTherapistId(e.target.value)} className="w-52" aria-label={t('calendar.therapist')}>
+          <option value="">{t('calendar.allTherapists')}</option>
+          {clinicians.data?.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.fullName}
             </option>
           ))}
         </Select>
@@ -102,7 +110,7 @@ function Calendar() {
               onClick={() => setView(v)}
               className={clsx('min-h-[40px] rounded-lg px-4 text-sm font-medium capitalize', view === v ? 'bg-primary-600 text-white' : 'text-slate-600')}
             >
-              {v}
+              {t(viewLabel[v])}
             </button>
           ))}
         </div>
@@ -114,7 +122,7 @@ function Calendar() {
         <div className={clsx(isFetching && 'opacity-70')}>
           {view === 'day' && (
             <div className="card divide-y divide-slate-100">
-              {forDay(anchor).length === 0 && <p className="p-8 text-center text-slate-500">No appointments on this day.</p>}
+              {forDay(anchor).length === 0 && <p className="p-8 text-center text-slate-500">{t('calendar.noAppointmentsDay')}</p>}
               {forDay(anchor).map((a) => (
                 <button key={a.id} onClick={() => open(a)} className="flex min-h-[64px] w-full flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 text-left hover:bg-slate-50">
                   <span className="w-28 font-semibold tabular-nums">
@@ -123,7 +131,7 @@ function Calendar() {
                   <span className="flex-1">
                     <span className="font-medium">{patientName(a.patient)}</span>
                     <span className="block text-sm text-slate-500">
-                      {a.therapist.fullName} · {a.durationMinutes} min
+                      {a.therapist.fullName} · {t('common.unitMinutes', { n: a.durationMinutes })}
                     </span>
                   </span>
                   <span className={clsx('rounded-lg border-l-4 px-2 py-1 text-xs font-medium', statusStyle[a.status])}>{humanize(a.status)}</span>
@@ -141,7 +149,7 @@ function Calendar() {
                       onClick={() => (setAnchor(d), setView('day'))}
                       className={clsx('block w-full border-b border-slate-100 px-2 py-2 text-left', sameDay(d, new Date()) && 'bg-primary-50')}
                     >
-                      <span className="block text-xs uppercase text-slate-500">{d.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+                      <span className="block text-xs uppercase text-slate-500">{d.toLocaleDateString(intlLocale(), { weekday: 'short' })}</span>
                       <span className={clsx('text-lg font-semibold', sameDay(d, new Date()) && 'text-primary-700')}>{d.getDate()}</span>
                     </button>
                     <div className="space-y-1.5 p-1.5">
@@ -160,7 +168,7 @@ function Calendar() {
                         <button
                           onClick={() => setModal({ appointment: null, date: withTime(d) })}
                           className="block min-h-touch w-full rounded-lg text-xs text-slate-400 hover:bg-slate-50 hover:text-primary-700"
-                          aria-label={`Add appointment on ${formatDate(d)}`}
+                          aria-label={t('calendar.addAppointmentOn', { date: formatDate(d) })}
                         >
                           +
                         </button>
@@ -175,9 +183,9 @@ function Calendar() {
           {view === 'month' && (
             <div className="card overflow-hidden">
               <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50 text-center text-xs font-semibold uppercase text-slate-500">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-                  <div key={d} className="py-2">
-                    {d}
+                {days.slice(0, 7).map((d) => (
+                  <div key={d.getDay()} className="py-2">
+                    {d.toLocaleDateString(intlLocale(), { weekday: 'short' })}
                   </div>
                 ))}
               </div>
@@ -205,7 +213,7 @@ function Calendar() {
                             {formatTime(a.startAt)} {a.patient.lastName} {a.patient.firstName}
                           </span>
                         ))}
-                        {items.length > 3 && <span className="block px-1 text-[11px] text-slate-500">+{items.length - 3} more</span>}
+                        {items.length > 3 && <span className="block px-1 text-[11px] text-slate-500">{t('calendar.moreCount', { count: items.length - 3 })}</span>}
                       </span>
                     </button>
                   );

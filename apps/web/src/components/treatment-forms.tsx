@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
+import { useMemo } from 'react';
 import { z } from 'zod';
 import { Button, Field, FormError, Input, Modal, ProgressBar, Select, Textarea } from '@/components/ui';
 import { api, errorMessage } from '@/lib/api';
@@ -10,6 +11,7 @@ import { humanize, toInputDate } from '@/lib/format';
 import { GOAL_STATUSES, PLAN_STATUSES } from '@/lib/labels';
 import { progressPercent } from '@/lib/progress';
 import type { Goal, TreatmentPlan } from '@/lib/types';
+import { MessageKey, useT } from '@/lib/i18n';
 
 function invalidate(qc: ReturnType<typeof useQueryClient>, patientId: string) {
   qc.invalidateQueries({ queryKey: ['treatment-plans', patientId] });
@@ -19,19 +21,20 @@ function invalidate(qc: ReturnType<typeof useQueryClient>, patientId: string) {
 
 // ---- Plan --------------------------------------------------------------------
 
-const planSchema = z
-  .object({
-    title: z.string().trim().min(1, 'Title is required').max(200),
-    primaryObjective: z.string().max(2000),
-    startDate: z.string().min(1, 'Start date is required'),
-    reviewDate: z.string(),
-    recommendedFrequency: z.string().max(100),
-    expectedDuration: z.string().max(100),
-    notes: z.string().max(5000),
-    status: z.enum(['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED']),
-  })
-  .refine((v) => !v.reviewDate || v.reviewDate >= v.startDate, { path: ['reviewDate'], message: 'Review date must be after the start date' });
-type PlanValues = z.infer<typeof planSchema>;
+const makePlanSchema = (t: (key: MessageKey) => string) =>
+  z
+    .object({
+      title: z.string().trim().min(1, t('treatment.titleRequired')).max(200),
+      primaryObjective: z.string().max(2000),
+      startDate: z.string().min(1, t('treatment.startDateRequired')),
+      reviewDate: z.string(),
+      recommendedFrequency: z.string().max(100),
+      expectedDuration: z.string().max(100),
+      notes: z.string().max(5000),
+      status: z.enum(['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED']),
+    })
+    .refine((v) => !v.reviewDate || v.reviewDate >= v.startDate, { path: ['reviewDate'], message: t('treatment.reviewAfterStart') });
+type PlanValues = z.infer<ReturnType<typeof makePlanSchema>>;
 
 export function PlanModal({
   patientId,
@@ -45,6 +48,8 @@ export function PlanModal({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const t = useT();
+  const planSchema = useMemo(() => makePlanSchema(t), [t]);
   const {
     register,
     handleSubmit,
@@ -84,14 +89,14 @@ export function PlanModal({
       open
       size="lg"
       onClose={onClose}
-      title={plan ? 'Edit treatment plan' : 'New treatment plan'}
+      title={plan ? t('treatment.editPlanTitle') : t('treatment.newPlan')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" form="plan-form" loading={save.isPending}>
-            Save plan
+            {t('treatment.savePlan')}
           </Button>
         </>
       }
@@ -100,25 +105,25 @@ export function PlanModal({
         <div className="sm:col-span-2">
           <FormError message={save.error ? errorMessage(save.error) : null} />
         </div>
-        <Field label="Title" required error={errors.title?.message} className="sm:col-span-2">
-          <Input {...register('title')} placeholder="e.g. Standing & walking independence" />
+        <Field label={t('treatment.title')} required error={errors.title?.message} className="sm:col-span-2">
+          <Input {...register('title')} placeholder={t('treatment.titlePlaceholder')} />
         </Field>
-        <Field label="Primary objective" className="sm:col-span-2">
+        <Field label={t('treatment.primaryObjective')} className="sm:col-span-2">
           <Textarea rows={2} {...register('primaryObjective')} />
         </Field>
-        <Field label="Start date" required error={errors.startDate?.message}>
+        <Field label={t('treatment.startDate')} required error={errors.startDate?.message}>
           <Input type="date" {...register('startDate')} />
         </Field>
-        <Field label="Review date" error={errors.reviewDate?.message}>
+        <Field label={t('treatment.reviewDate')} error={errors.reviewDate?.message}>
           <Input type="date" {...register('reviewDate')} />
         </Field>
-        <Field label="Recommended frequency">
-          <Input {...register('recommendedFrequency')} placeholder="3 sessions / week" />
+        <Field label={t('treatment.recommendedFrequency')}>
+          <Input {...register('recommendedFrequency')} placeholder={t('treatment.frequencyPlaceholder')} />
         </Field>
-        <Field label="Expected duration">
-          <Input {...register('expectedDuration')} placeholder="6 months" />
+        <Field label={t('treatment.expectedDuration')}>
+          <Input {...register('expectedDuration')} placeholder={t('treatment.durationPlaceholder')} />
         </Field>
-        <Field label="Status" hint={willSupersede ? 'The current active plan will be marked Completed.' : undefined}>
+        <Field label={t('common.status')} hint={willSupersede ? t('treatment.supersedeHint') : undefined}>
           <Select {...register('status')}>
             {PLAN_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -127,7 +132,7 @@ export function PlanModal({
             ))}
           </Select>
         </Field>
-        <Field label="Notes" className="sm:col-span-2">
+        <Field label={t('common.notes')} className="sm:col-span-2">
           <Textarea rows={3} {...register('notes')} />
         </Field>
       </form>
@@ -137,26 +142,29 @@ export function PlanModal({
 
 // ---- Goal --------------------------------------------------------------------
 
-const goalSchema = z
-  .object({
-    title: z.string().trim().min(1, 'Title is required').max(200),
-    description: z.string().max(2000),
-    metricName: z.string().trim().max(120),
-    unit: z.string().trim().min(1, 'Unit is required').max(30),
-    direction: z.enum(['INCREASE_IS_BETTER', 'DECREASE_IS_BETTER']),
-    baselineValue: z.coerce.number({ invalid_type_error: 'Baseline is required' }),
-    targetValue: z.coerce.number({ invalid_type_error: 'Target is required' }),
-    targetDate: z.string(),
-    status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'ACHIEVED', 'PAUSED', 'CANCELLED']),
-  })
-  .refine((v) => (v.direction === 'INCREASE_IS_BETTER' ? v.targetValue > v.baselineValue : v.targetValue < v.baselineValue), {
-    path: ['targetValue'],
-    message: 'Target must improve on the baseline in the chosen direction',
-  });
-type GoalValues = z.infer<typeof goalSchema>;
+const makeGoalSchema = (t: (key: MessageKey) => string) =>
+  z
+    .object({
+      title: z.string().trim().min(1, t('treatment.titleRequired')).max(200),
+      description: z.string().max(2000),
+      metricName: z.string().trim().max(120),
+      unit: z.string().trim().min(1, t('treatment.unitRequired')).max(30),
+      direction: z.enum(['INCREASE_IS_BETTER', 'DECREASE_IS_BETTER']),
+      baselineValue: z.coerce.number({ invalid_type_error: t('treatment.baselineRequired') }),
+      targetValue: z.coerce.number({ invalid_type_error: t('treatment.targetRequired') }),
+      targetDate: z.string(),
+      status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'ACHIEVED', 'PAUSED', 'CANCELLED']),
+    })
+    .refine((v) => (v.direction === 'INCREASE_IS_BETTER' ? v.targetValue > v.baselineValue : v.targetValue < v.baselineValue), {
+      path: ['targetValue'],
+      message: t('treatment.targetMustImprove'),
+    });
+type GoalValues = z.infer<ReturnType<typeof makeGoalSchema>>;
 
 export function GoalModal({ patientId, planId, goal, onClose }: { patientId: string; planId: string; goal: Goal | null; onClose: () => void }) {
   const qc = useQueryClient();
+  const t = useT();
+  const goalSchema = useMemo(() => makeGoalSchema(t), [t]);
   const {
     register,
     handleSubmit,
@@ -201,14 +209,14 @@ export function GoalModal({ patientId, planId, goal, onClose }: { patientId: str
       open
       size="lg"
       onClose={onClose}
-      title={goal ? 'Edit goal' : 'New measurable goal'}
+      title={goal ? t('treatment.editGoal') : t('treatment.newGoal')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" form="goal-form" loading={save.isPending}>
-            Save goal
+            {t('treatment.saveGoal')}
           </Button>
         </>
       }
@@ -217,36 +225,36 @@ export function GoalModal({ patientId, planId, goal, onClose }: { patientId: str
         <div className="sm:col-span-2">
           <FormError message={save.error ? errorMessage(save.error) : null} />
         </div>
-        <Field label="Goal" required error={errors.title?.message} className="sm:col-span-2">
-          <Input {...register('title')} placeholder="Stand independently" />
+        <Field label={t('treatment.goal')} required error={errors.title?.message} className="sm:col-span-2">
+          <Input {...register('title')} placeholder={t('treatment.goalPlaceholder')} />
         </Field>
-        <Field label="Metric" hint="What you will measure each session. Defaults to the goal title." className="sm:col-span-2">
-          <Input {...register('metricName')} placeholder="Standing Duration" />
+        <Field label={t('treatment.metric')} hint={t('treatment.metricHint')} className="sm:col-span-2">
+          <Input {...register('metricName')} placeholder={t('treatment.metricPlaceholder')} />
         </Field>
-        <Field label="Baseline" required error={errors.baselineValue?.message}>
+        <Field label={t('treatment.baseline')} required error={errors.baselineValue?.message}>
           <Input type="number" step="any" inputMode="decimal" {...register('baselineValue')} placeholder="5" />
         </Field>
-        <Field label="Target" required error={errors.targetValue?.message}>
+        <Field label={t('treatment.target')} required error={errors.targetValue?.message}>
           <Input type="number" step="any" inputMode="decimal" {...register('targetValue')} placeholder="30" />
         </Field>
-        <Field label="Unit" required error={errors.unit?.message}>
-          <Input {...register('unit')} placeholder="seconds" list="unit-suggestions" />
+        <Field label={t('treatment.unit')} required error={errors.unit?.message}>
+          <Input {...register('unit')} placeholder={t('treatment.unitPlaceholder')} list="unit-suggestions" />
           <datalist id="unit-suggestions">
-            {['seconds', 'm', 'reps', '°', 'steps', 'cm', 'points', '%'].map((u) => (
+            {[t('treatment.unitSeconds'), 'm', t('treatment.unitReps'), '°', t('treatment.unitSteps'), 'cm', t('treatment.unitPoints'), '%'].map((u) => (
               <option key={u} value={u} />
             ))}
           </datalist>
         </Field>
-        <Field label="Improvement direction">
+        <Field label={t('treatment.improvementDirection')}>
           <Select {...register('direction')}>
-            <option value="INCREASE_IS_BETTER">Higher is better</option>
-            <option value="DECREASE_IS_BETTER">Lower is better</option>
+            <option value="INCREASE_IS_BETTER">{humanize('INCREASE_IS_BETTER')}</option>
+            <option value="DECREASE_IS_BETTER">{humanize('DECREASE_IS_BETTER')}</option>
           </Select>
         </Field>
-        <Field label="Deadline">
+        <Field label={t('treatment.deadline')}>
           <Input type="date" {...register('targetDate')} />
         </Field>
-        <Field label="Status">
+        <Field label={t('common.status')}>
           <Select {...register('status')}>
             {GOAL_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -255,12 +263,12 @@ export function GoalModal({ patientId, planId, goal, onClose }: { patientId: str
             ))}
           </Select>
         </Field>
-        <Field label="Description" className="sm:col-span-2">
+        <Field label={t('treatment.description')} className="sm:col-span-2">
           <Textarea rows={2} {...register('description')} />
         </Field>
         {preview !== null && (
           <div className="sm:col-span-2">
-            <p className="mb-1 text-sm text-slate-500">Progress with current value: {preview}%</p>
+            <p className="mb-1 text-sm text-slate-500">{t('treatment.previewProgress', { percent: preview })}</p>
             <ProgressBar percent={preview} />
           </div>
         )}

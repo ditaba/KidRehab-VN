@@ -6,11 +6,13 @@ import { usePathname } from 'next/navigation';
 import { ReactNode, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { humanize } from '@/lib/format';
+import { MessageKey, useT } from '@/lib/i18n';
+import { LanguageSwitcher } from './language-switcher';
 import type { Role } from '@/lib/types';
 
 interface NavItem {
   href: string;
-  label: string;
+  label: MessageKey;
   icon: ReactNode;
   roles?: Role[];
 }
@@ -22,21 +24,22 @@ const icon = (d: string) => (
 );
 
 const NAV: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: icon('M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10') },
-  { href: '/patients', label: 'Patients', icon: icon('M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.87M16 4.13a3 3 0 0 1 0 5.75') },
-  { href: '/calendar', label: 'Calendar', icon: icon('M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z') },
-  { href: '/sessions', label: 'Sessions', icon: icon('M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'), roles: ['ADMIN', 'DOCTOR', 'THERAPIST'] },
-  { href: '/exercises', label: 'Exercises', icon: icon('M6.5 6.5h11M6.5 17.5h11M4 9v6M20 9v6M2 11v2M22 11v2'), roles: ['ADMIN', 'DOCTOR', 'THERAPIST'] },
+  { href: '/dashboard', label: 'shell.navDashboard', icon: icon('M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10') },
+  { href: '/patients', label: 'shell.navPatients', icon: icon('M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.87M16 4.13a3 3 0 0 1 0 5.75') },
+  { href: '/calendar', label: 'shell.navCalendar', icon: icon('M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z') },
+  { href: '/sessions', label: 'shell.navSessions', icon: icon('M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'), roles: ['ADMIN', 'DOCTOR', 'THERAPIST'] },
+  { href: '/exercises', label: 'shell.navExercises', icon: icon('M6.5 6.5h11M6.5 17.5h11M4 9v6M20 9v6M2 11v2M22 11v2'), roles: ['ADMIN', 'DOCTOR', 'THERAPIST'] },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const t = useT();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const items = NAV.filter((n) => !n.roles || (user && n.roles.includes(user.role)));
 
   const nav = (
-    <nav className="flex flex-col gap-1" aria-label="Main">
+    <nav className="flex flex-col gap-1" aria-label={t('shell.mainNav')}>
       {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
@@ -50,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           >
             {item.icon}
-            {item.label}
+            {t(item.label)}
           </Link>
         );
       })}
@@ -71,8 +74,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         {humanize(user.role)} · {user.clinic?.name}
       </p>
       <button onClick={logout} className="mt-2 flex min-h-touch w-full items-center rounded-xl px-2 text-sm text-slate-600 hover:bg-slate-100">
-        Sign out
+        {t('shell.signOut')}
       </button>
+      <LanguageSwitcher className="mt-2 px-2" />
     </div>
   );
 
@@ -93,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <button
           onClick={() => setMenuOpen((o) => !o)}
           className="min-h-touch min-w-touch rounded-xl text-slate-600 hover:bg-slate-100"
-          aria-label="Open menu"
+          aria-label={t('shell.openMenu')}
           aria-expanded={menuOpen}
         >
           {icon(menuOpen ? 'M6 6l12 12M18 6L6 18' : 'M4 6h16M4 12h16M4 18h16')}

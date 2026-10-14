@@ -12,10 +12,12 @@ import { planStatusTone } from '@/lib/labels';
 import { usePatientId } from '@/lib/patient';
 import { can } from '@/lib/permissions';
 import type { Goal, TreatmentPlan } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 export default function TreatmentPage() {
   const id = usePatientId();
   const me = useMe();
+  const t = useT();
   const canEdit = can(me.role, 'treatment.edit');
   const [planModal, setPlanModal] = useState<TreatmentPlan | 'new' | null>(null);
   const [goalModal, setGoalModal] = useState<{ planId: string; goal: Goal | null } | null>(null);
@@ -39,21 +41,21 @@ export default function TreatmentPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-slate-500">
-          {data.length} plan{data.length === 1 ? '' : 's'} on record
+          {t(data.length === 1 ? 'treatment.plansOne' : 'treatment.plansOther', { count: data.length })}
           {history.length > 0 && (
             <button className="ml-2 text-primary-700 underline-offset-2 hover:underline" onClick={() => setShowHistory((s) => !s)}>
-              {showHistory ? 'Hide history' : `Show ${history.length} historical`}
+              {showHistory ? t('treatment.hideHistory') : t('treatment.showHistorical', { count: history.length })}
             </button>
           )}
         </p>
-        {canEdit && <Button onClick={() => setPlanModal('new')}>New treatment plan</Button>}
+        {canEdit && <Button onClick={() => setPlanModal('new')}>{t('treatment.newPlan')}</Button>}
       </div>
 
       {visible.length === 0 && (
         <EmptyState
-          title="No active treatment plan"
-          description={canEdit ? 'Create a plan, then add measurable goals (baseline, target, unit).' : 'A doctor has not created a treatment plan yet.'}
-          action={canEdit && <Button onClick={() => setPlanModal('new')}>Create treatment plan</Button>}
+          title={t('treatment.emptyTitle')}
+          description={canEdit ? t('treatment.emptyDescriptionEditor') : t('treatment.emptyDescriptionViewer')}
+          action={canEdit && <Button onClick={() => setPlanModal('new')}>{t('treatment.createPlan')}</Button>}
         />
       )}
 
@@ -68,7 +70,7 @@ export default function TreatmentPage() {
                 <StatusBadge status={plan.status} tones={planStatusTone} />
               </div>
               <p className="text-sm text-slate-500">
-                {formatDay(plan.startDate)} → review {formatDay(plan.reviewDate)}
+                {t('treatment.planDates', { start: formatDay(plan.startDate), review: formatDay(plan.reviewDate) })}
                 {plan.recommendedFrequency && ` · ${plan.recommendedFrequency}`}
                 {plan.expectedDuration && ` · ${plan.expectedDuration}`}
               </p>
@@ -78,10 +80,10 @@ export default function TreatmentPage() {
             canEdit && (
               <>
                 <Button variant="ghost" size="sm" onClick={() => setPlanModal(plan)}>
-                  Edit plan
+                  {t('treatment.editPlan')}
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => setGoalModal({ planId: plan.id, goal: null })}>
-                  + Add goal
+                  {t('treatment.addGoalPlus')}
                 </Button>
               </>
             )
@@ -90,9 +92,9 @@ export default function TreatmentPage() {
           {plan.primaryObjective && <p className="mb-4 text-slate-700">{plan.primaryObjective}</p>}
           {plan.goals.length === 0 ? (
             <EmptyState
-              title="No goals yet"
-              description="Add at least one measurable goal so progress can be tracked."
-              action={canEdit && <Button onClick={() => setGoalModal({ planId: plan.id, goal: null })}>Add goal</Button>}
+              title={t('treatment.noGoalsTitle')}
+              description={t('treatment.noGoalsDescription')}
+              action={canEdit && <Button onClick={() => setGoalModal({ planId: plan.id, goal: null })}>{t('treatment.addGoal')}</Button>}
             />
           ) : (
             <ul className="grid gap-4 md:grid-cols-2">
@@ -100,10 +102,10 @@ export default function TreatmentPage() {
                 <li key={g.id} className="rounded-xl border border-slate-200 p-4">
                   <GoalProgress goal={g} />
                   <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
-                    <span>Deadline: {formatDay(g.targetDate)}</span>
+                    <span>{t('treatment.deadlineValue', { date: formatDay(g.targetDate) })}</span>
                     {canEdit && (
                       <Button variant="ghost" size="sm" onClick={() => setGoalModal({ planId: plan.id, goal: g })}>
-                        Edit goal
+                        {t('treatment.editGoal')}
                       </Button>
                     )}
                   </div>

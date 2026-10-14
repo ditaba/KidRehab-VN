@@ -202,6 +202,15 @@ GET|POST /users                  PATCH /users/:id         GET|PATCH /clinic
 GET    /audit-logs               GET /health
 ```
 
+## Language
+
+The web UI is in Vietnamese by default, with English available from the language switch in the sidebar (and on the sign-in page). The choice is stored in the `kidrehab-locale` cookie so the server renders the right language on the first paint.
+
+- UI strings live in `apps/web/src/lib/i18n/messages/<namespace>.ts`, declared with `defineMessages(en, vi)`; a missing Vietnamese key is a type error, and `i18n.test.ts` checks both tables have the same keys and placeholders.
+- Components use `const t = useT()` and `t('patients.title')`; enum values (roles, statuses, categories…) are labelled through `messages/enums.ts`.
+- Dates and times use `vi-VN` / `en-GB` formatting. The API still answers in English; known API error messages are translated in `lib/api.ts`.
+- Clinical data entered by staff (names, diagnoses, exercise names, notes) is shown as entered.
+
 ## Web pages
 
 The following pages exist:

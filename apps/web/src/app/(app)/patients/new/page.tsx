@@ -4,8 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { useMemo } from 'react';
 import { z } from 'zod';
-import { guardianSchema } from '@/components/guardian-fields';
+import { makeGuardianSchema } from '@/components/guardian-fields';
 import { Button, Card, Field, FormError, Input, NoAccess, PageHeader, Select, Textarea } from '@/components/ui';
 import { api, errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/auth';
@@ -14,28 +15,32 @@ import { useClinicians } from '@/lib/hooks';
 import { RELATIONSHIPS } from '@/lib/labels';
 import { can } from '@/lib/permissions';
 import type { PatientDetail } from '@/lib/types';
+import { enumLabel, MessageKey, useT } from '@/lib/i18n';
 
 const today = toInputDate(new Date());
 
-const schema = z.object({
-  firstName: z.string().trim().min(1, 'First name is required').max(80),
-  lastName: z.string().trim().min(1, 'Last name is required').max(80),
-  dateOfBirth: z
-    .string()
-    .min(1, 'Date of birth is required')
-    .refine((v) => v <= today, 'Date of birth cannot be in the future'),
-  gender: z.enum(['', 'MALE', 'FEMALE', 'OTHER']).optional(),
-  patientCode: z.string().trim().max(30).optional(),
-  medicalNotes: z.string().max(5000).optional(),
-  diagnosis: z.string().trim().max(200).optional(),
-  primaryTherapistId: z.string().optional(),
-  guardians: z.array(guardianSchema).min(1),
-});
-type FormValues = z.infer<typeof schema>;
+const makeSchema = (t: (key: MessageKey) => string) =>
+  z.object({
+    firstName: z.string().trim().min(1, t('patients.firstNameRequired')).max(80),
+    lastName: z.string().trim().min(1, t('patients.lastNameRequired')).max(80),
+    dateOfBirth: z
+      .string()
+      .min(1, t('patients.dobRequired'))
+      .refine((v) => v <= today, t('patients.dobFuture')),
+    gender: z.enum(['', 'MALE', 'FEMALE', 'OTHER']).optional(),
+    patientCode: z.string().trim().max(30).optional(),
+    medicalNotes: z.string().max(5000).optional(),
+    diagnosis: z.string().trim().max(200).optional(),
+    primaryTherapistId: z.string().optional(),
+    guardians: z.array(makeGuardianSchema(t)).min(1),
+  });
+type FormValues = z.infer<ReturnType<typeof makeSchema>>;
 
 export default function NewPatientPage() {
   const me = useMe();
   const router = useRouter();
+  const t = useT();
+  const schema = useMemo(() => makeSchema(t), [t]);
   const qc = useQueryClient();
   const clinicians = useClinicians();
   const {
@@ -75,61 +80,61 @@ export default function NewPatientPage() {
 
   return (
     <>
-      <PageHeader title="New patient" subtitle="Fields marked * are required." />
+      <PageHeader title={t('patients.newPatient')} subtitle={t('patients.requiredFieldsHint')} />
       <form onSubmit={handleSubmit((v) => create.mutate(v))} className="space-y-6" noValidate>
         <FormError message={create.error ? errorMessage(create.error) : null} />
-        <Card title="Patient">
+        <Card title={t('patients.patient')}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Last name (family name)" required error={errors.lastName?.message}>
-              <Input {...register('lastName')} placeholder="Nguyen" />
+            <Field label={t('patients.lastNameFamily')} required error={errors.lastName?.message}>
+              <Input {...register('lastName')} placeholder={t('patients.lastNamePlaceholder')} />
             </Field>
-            <Field label="First name" required error={errors.firstName?.message}>
-              <Input {...register('firstName')} placeholder="Van A" />
+            <Field label={t('patients.firstName')} required error={errors.firstName?.message}>
+              <Input {...register('firstName')} placeholder={t('patients.firstNamePlaceholder')} />
             </Field>
             <Field
-              label="Date of birth"
+              label={t('patients.dateOfBirth')}
               required
               error={errors.dateOfBirth?.message}
-              hint={dob && dob <= today ? `Age: ${ageFromDob(dob)} years` : undefined}
+              hint={dob && dob <= today ? t('patients.ageHint', { age: ageFromDob(dob) }) : undefined}
             >
               <Input type="date" max={today} {...register('dateOfBirth')} />
             </Field>
-            <Field label="Gender">
+            <Field label={t('patients.gender')}>
               <Select {...register('gender')}>
-                <option value="">Not specified</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
+                <option value="">{t('patients.genderNotSpecified')}</option>
+                <option value="MALE">{enumLabel('MALE')}</option>
+                <option value="FEMALE">{enumLabel('FEMALE')}</option>
+                <option value="OTHER">{enumLabel('OTHER')}</option>
               </Select>
             </Field>
-            <Field label="Patient code" hint="Leave blank to generate automatically (KR-0001…)" error={errors.patientCode?.message}>
+            <Field label={t('patients.patientCode')} hint={t('patients.patientCodeHint')} error={errors.patientCode?.message}>
               <Input {...register('patientCode')} />
             </Field>
-            <Field label="Primary therapist">
+            <Field label={t('patients.primaryTherapist')}>
               <Select {...register('primaryTherapistId')}>
-                <option value="">Unassigned</option>
-                {clinicians.data?.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.fullName}
+                <option value="">{t('patients.unassigned')}</option>
+                {clinicians.data?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.fullName}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Diagnosis / referral reason" className="sm:col-span-2">
-              <Input {...register('diagnosis')} placeholder="e.g. Cerebral Palsy" />
+            <Field label={t('patients.diagnosisReferral')} className="sm:col-span-2">
+              <Input {...register('diagnosis')} placeholder={t('patients.diagnosisPlaceholder')} />
             </Field>
-            <Field label="Medical notes" className="sm:col-span-2">
+            <Field label={t('patients.medicalNotes')} className="sm:col-span-2">
               <Textarea rows={3} {...register('medicalNotes')} />
             </Field>
           </div>
         </Card>
 
         <Card
-          title="Guardian"
+          title={t('patients.guardian')}
           actions={
             fields.length < 3 && (
               <Button variant="secondary" size="sm" onClick={() => append({ fullName: '', relationship: 'Father', phone: '', email: '' })}>
-                Add another guardian
+                {t('patients.addAnotherGuardian')}
               </Button>
             )
           }
@@ -139,28 +144,28 @@ export default function NewPatientPage() {
               <div key={f.id} className="grid gap-4 sm:grid-cols-2">
                 {i > 0 && (
                   <div className="flex items-center justify-between sm:col-span-2">
-                    <span className="text-sm font-medium text-slate-500">Guardian {i + 1}</span>
+                    <span className="text-sm font-medium text-slate-500">{t('patients.guardianN', { n: i + 1 })}</span>
                     <Button variant="ghost" size="sm" onClick={() => remove(i)}>
-                      Remove
+                      {t('common.remove')}
                     </Button>
                   </div>
                 )}
-                <Field label="Full name" required error={errors.guardians?.[i]?.fullName?.message}>
+                <Field label={t('patients.fullName')} required error={errors.guardians?.[i]?.fullName?.message}>
                   <Input {...register(`guardians.${i}.fullName`)} />
                 </Field>
-                <Field label="Relationship" required error={errors.guardians?.[i]?.relationship?.message}>
+                <Field label={t('patients.relationship')} required error={errors.guardians?.[i]?.relationship?.message}>
                   <Select {...register(`guardians.${i}.relationship`)}>
                     {RELATIONSHIPS.map((r) => (
                       <option key={r} value={r}>
-                        {r}
+                        {enumLabel(r)}
                       </option>
                     ))}
                   </Select>
                 </Field>
-                <Field label="Phone" required error={errors.guardians?.[i]?.phone?.message}>
+                <Field label={t('patients.phone')} required error={errors.guardians?.[i]?.phone?.message}>
                   <Input type="tel" inputMode="tel" {...register(`guardians.${i}.phone`)} placeholder="0903 123 456" />
                 </Field>
-                <Field label="Email" error={errors.guardians?.[i]?.email?.message}>
+                <Field label={t('patients.email')} error={errors.guardians?.[i]?.email?.message}>
                   <Input type="email" {...register(`guardians.${i}.email`)} />
                 </Field>
               </div>
@@ -170,10 +175,10 @@ export default function NewPatientPage() {
 
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => router.back()}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" size="lg" loading={create.isPending}>
-            Save
+            {t('common.save')}
           </Button>
         </div>
       </form>

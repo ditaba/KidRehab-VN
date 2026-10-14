@@ -10,11 +10,13 @@ import { useMe } from '@/lib/auth';
 import { formatDate, formatDateTime, formatTime, patientName } from '@/lib/format';
 import { useClinicians } from '@/lib/hooks';
 import { sessionStatusTone } from '@/lib/labels';
+import { enumLabel, useT } from '@/lib/i18n';
 import { can } from '@/lib/permissions';
 import type { Paginated, SessionListItem, SessionStatus, TodaySessions } from '@/lib/types';
 
 export default function SessionsPage() {
   const me = useMe();
+  const t = useT();
   const isTherapist = me.role === 'THERAPIST';
   const [therapistId, setTherapistId] = useState(isTherapist ? me.id : '');
   const [status, setStatus] = useState<SessionStatus | ''>('');
@@ -40,7 +42,7 @@ export default function SessionsPage() {
   return (
     <>
       <PageHeader
-        title="Sessions"
+        title={t('sessions.title')}
         subtitle={formatDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' })}
         actions={
           <Select
@@ -49,29 +51,29 @@ export default function SessionsPage() {
               setTherapistId(e.target.value);
               setPage(1);
             }}
-            aria-label="Therapist"
+            aria-label={t('sessions.therapist')}
             className="w-56"
           >
-            <option value="">All therapists</option>
-            {clinicians.data?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.id === me.id ? `${t.fullName} (me)` : t.fullName}
+            <option value="">{t('sessions.allTherapists')}</option>
+            {clinicians.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.id === me.id ? t('sessions.meSuffix', { name: c.fullName }) : c.fullName}
               </option>
             ))}
           </Select>
         }
       />
       <div className="space-y-6">
-        <Card title={isTherapist && therapistId === me.id ? 'My patients today' : "Today's sessions"}>
+        <Card title={isTherapist && therapistId === me.id ? t('sessions.myPatientsToday') : t('sessions.todaysSessions')}>
           {today.isLoading && <Loading />}
           {today.error && <ErrorState message={errorMessage(today.error)} onRetry={() => today.refetch()} />}
           {today.data && today.data.appointments.length === 0 && today.data.walkIns.length === 0 && (
-            <EmptyState title="No sessions scheduled today" description="Start a walk-in session from a patient's page." />
+            <EmptyState title={t('sessions.noSessionsToday')} description={t('sessions.noSessionsTodayHint')} />
           )}
           {today.data && today.data.appointments.length > 0 && <TodayList items={today.data.appointments} showTherapist={!therapistId} />}
           {today.data && today.data.walkIns.length > 0 && (
             <div className="mt-4 border-t border-slate-100 pt-4">
-              <p className="mb-2 text-sm font-medium text-slate-500">Walk-in sessions</p>
+              <p className="mb-2 text-sm font-medium text-slate-500">{t('sessions.walkIns')}</p>
               <ul className="divide-y divide-slate-100">
                 {today.data.walkIns.map((s) => (
                   <li key={s.id}>
@@ -90,7 +92,7 @@ export default function SessionsPage() {
         </Card>
 
         <Card
-          title="Session history"
+          title={t('sessions.history')}
           actions={
             <Select
               value={status}
@@ -98,31 +100,31 @@ export default function SessionsPage() {
                 setStatus(e.target.value as SessionStatus | '');
                 setPage(1);
               }}
-              aria-label="Status"
+              aria-label={t('common.status')}
               className="w-40"
             >
-              <option value="">All statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="">{t('sessions.allStatuses')}</option>
+              <option value="DRAFT">{enumLabel('DRAFT')}</option>
+              <option value="COMPLETED">{enumLabel('COMPLETED')}</option>
+              <option value="CANCELLED">{enumLabel('CANCELLED')}</option>
             </Select>
           }
         >
           {recent.isLoading && <Loading />}
           {recent.error && <ErrorState message={errorMessage(recent.error)} onRetry={() => recent.refetch()} />}
-          {recent.data && recent.data.data.length === 0 && <EmptyState title="No sessions found" />}
+          {recent.data && recent.data.data.length === 0 && <EmptyState title={t('sessions.noSessionsFound')} />}
           {recent.data && recent.data.data.length > 0 && (
             <div className="-mx-5 -mb-5">
               <div className="overflow-x-auto">
                 <table className="table-base">
                   <thead className="border-b border-slate-100 bg-slate-50">
                     <tr>
-                      <th>Date</th>
-                      <th>Patient</th>
-                      <th>Therapist</th>
-                      <th>Exercises</th>
-                      <th>Measurements</th>
-                      <th>Status</th>
+                      <th>{t('common.date')}</th>
+                      <th>{t('sessions.colPatient')}</th>
+                      <th>{t('sessions.colTherapist')}</th>
+                      <th>{t('sessions.colExercises')}</th>
+                      <th>{t('sessions.colMeasurements')}</th>
+                      <th>{t('common.status')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">

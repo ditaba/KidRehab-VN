@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button, Field, FormError, Input, Modal, Select, Textarea } from '@/components/ui';
@@ -11,21 +12,25 @@ import { toInputDate } from '@/lib/format';
 import { useClinicians } from '@/lib/hooks';
 import { can } from '@/lib/permissions';
 import type { PatientDetail } from '@/lib/types';
+import { enumLabel, MessageKey, useT } from '@/lib/i18n';
 
-const schema = z.object({
-  firstName: z.string().trim().min(1, 'Required').max(80),
-  lastName: z.string().trim().min(1, 'Required').max(80),
-  dateOfBirth: z.string().min(1, 'Required'),
-  gender: z.enum(['', 'MALE', 'FEMALE', 'OTHER']),
-  patientCode: z.string().trim().min(1, 'Required').max(30),
-  primaryTherapistId: z.string(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'DISCHARGED']),
-  medicalNotes: z.string().max(5000),
-});
-type FormValues = z.infer<typeof schema>;
+const makeSchema = (t: (key: MessageKey) => string) =>
+  z.object({
+    firstName: z.string().trim().min(1, t('common.required')).max(80),
+    lastName: z.string().trim().min(1, t('common.required')).max(80),
+    dateOfBirth: z.string().min(1, t('common.required')),
+    gender: z.enum(['', 'MALE', 'FEMALE', 'OTHER']),
+    patientCode: z.string().trim().min(1, t('common.required')).max(30),
+    primaryTherapistId: z.string(),
+    status: z.enum(['ACTIVE', 'INACTIVE', 'DISCHARGED']),
+    medicalNotes: z.string().max(5000),
+  });
+type FormValues = z.infer<ReturnType<typeof makeSchema>>;
 
 export function EditPatientModal({ patient, open, onClose }: { patient: PatientDetail; open: boolean; onClose: () => void }) {
   const me = useMe();
+  const t = useT();
+  const schema = useMemo(() => makeSchema(t), [t]);
   const qc = useQueryClient();
   const clinicians = useClinicians();
   const clinical = can(me.role, 'patient.editClinical');
@@ -72,14 +77,14 @@ export function EditPatientModal({ patient, open, onClose }: { patient: PatientD
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit patient"
+      title={t('patients.editPatient')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" form="edit-patient" loading={save.isPending}>
-            Save
+            {t('common.save')}
           </Button>
         </>
       }
@@ -88,46 +93,46 @@ export function EditPatientModal({ patient, open, onClose }: { patient: PatientD
         <div className="sm:col-span-2">
           <FormError message={save.error ? errorMessage(save.error) : null} />
         </div>
-        <Field label="Last name" required error={errors.lastName?.message}>
+        <Field label={t('patients.lastName')} required error={errors.lastName?.message}>
           <Input {...register('lastName')} />
         </Field>
-        <Field label="First name" required error={errors.firstName?.message}>
+        <Field label={t('patients.firstName')} required error={errors.firstName?.message}>
           <Input {...register('firstName')} />
         </Field>
-        <Field label="Date of birth" required error={errors.dateOfBirth?.message}>
+        <Field label={t('patients.dateOfBirth')} required error={errors.dateOfBirth?.message}>
           <Input type="date" max={toInputDate(new Date())} {...register('dateOfBirth')} />
         </Field>
-        <Field label="Gender">
+        <Field label={t('patients.gender')}>
           <Select {...register('gender')}>
-            <option value="">Not specified</option>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-            <option value="OTHER">Other</option>
+            <option value="">{t('patients.genderNotSpecified')}</option>
+            <option value="MALE">{enumLabel('MALE')}</option>
+            <option value="FEMALE">{enumLabel('FEMALE')}</option>
+            <option value="OTHER">{enumLabel('OTHER')}</option>
           </Select>
         </Field>
-        <Field label="Patient code" required error={errors.patientCode?.message}>
+        <Field label={t('patients.patientCode')} required error={errors.patientCode?.message}>
           <Input {...register('patientCode')} />
         </Field>
-        <Field label="Primary therapist">
+        <Field label={t('patients.primaryTherapist')}>
           <Select {...register('primaryTherapistId')}>
-            <option value="">Unassigned</option>
-            {clinicians.data?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.fullName}
+            <option value="">{t('patients.unassigned')}</option>
+            {clinicians.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.fullName}
               </option>
             ))}
           </Select>
         </Field>
         {clinical && (
           <>
-            <Field label="Status">
+            <Field label={t('common.status')}>
               <Select {...register('status')}>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="DISCHARGED">Discharged</option>
+                <option value="ACTIVE">{enumLabel('ACTIVE')}</option>
+                <option value="INACTIVE">{enumLabel('INACTIVE')}</option>
+                <option value="DISCHARGED">{enumLabel('DISCHARGED')}</option>
               </Select>
             </Field>
-            <Field label="Medical notes" className="sm:col-span-2">
+            <Field label={t('patients.medicalNotes')} className="sm:col-span-2">
               <Textarea rows={3} {...register('medicalNotes')} />
             </Field>
           </>

@@ -2,31 +2,35 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Badge, Button, EmptyState, ErrorState, Field, FormError, Input, Loading, Modal, NoAccess, PageHeader, Select, Textarea } from '@/components/ui';
 import { api, errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/auth';
 import { formatPrescription, humanize } from '@/lib/format';
+import { MessageKey, useT } from '@/lib/i18n';
 import { EXERCISE_CATEGORIES } from '@/lib/labels';
 import { can } from '@/lib/permissions';
 import type { Exercise, ExerciseCategory } from '@/lib/types';
 
-const optionalInt = z.union([z.literal(''), z.coerce.number().int('Whole number').min(0, 'Must be ≥ 0')]);
-const schema = z.object({
-  name: z.string().trim().min(1, 'Exercise name is required').max(150),
-  category: z.enum(EXERCISE_CATEGORIES as [ExerciseCategory, ...ExerciseCategory[]]),
-  description: z.string().max(2000),
-  instructions: z.string().max(5000),
-  defaultSets: optionalInt,
-  defaultRepetitions: optionalInt,
-  defaultDurationSeconds: optionalInt,
-});
-type FormValues = z.infer<typeof schema>;
+const makeSchema = (t: (key: MessageKey) => string) => {
+  const optionalInt = z.union([z.literal(''), z.coerce.number().int(t('exercises.wholeNumber')).min(0, t('exercises.mustBeNonNegative'))]);
+  return z.object({
+    name: z.string().trim().min(1, t('exercises.nameRequired')).max(150),
+    category: z.enum(EXERCISE_CATEGORIES as [ExerciseCategory, ...ExerciseCategory[]]),
+    description: z.string().max(2000),
+    instructions: z.string().max(5000),
+    defaultSets: optionalInt,
+    defaultRepetitions: optionalInt,
+    defaultDurationSeconds: optionalInt,
+  });
+};
+type FormValues = z.infer<ReturnType<typeof makeSchema>>;
 
 export default function ExercisesPage() {
   const me = useMe();
+  const t = useT();
   const canEdit = can(me.role, 'exercise.edit');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<ExerciseCategory | ''>('');
@@ -57,14 +61,14 @@ export default function ExercisesPage() {
   return (
     <>
       <PageHeader
-        title="Exercise library"
-        subtitle="Templates therapists add to sessions. Changing a session's prescription never changes the template."
-        actions={canEdit && <Button onClick={() => setEditing('new')}>New exercise</Button>}
+        title={t('exercises.title')}
+        subtitle={t('exercises.subtitle')}
+        actions={canEdit && <Button onClick={() => setEditing('new')}>{t('exercises.newExercise')}</Button>}
       />
       <div className="card mb-4 grid gap-3 p-4 sm:grid-cols-3">
-        <Input type="search" placeholder="Search exercises" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
-        <Select value={category} onChange={(e) => setCategory(e.target.value as ExerciseCategory | '')} aria-label="Category">
-          <option value="">All categories</option>
+        <Input type="search" placeholder={t('exercises.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} aria-label={t('common.search')} />
+        <Select value={category} onChange={(e) => setCategory(e.target.value as ExerciseCategory | '')} aria-label={t('exercises.category')}>
+          <option value="">{t('exercises.allCategories')}</option>
           {EXERCISE_CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {humanize(c)}
@@ -73,7 +77,7 @@ export default function ExercisesPage() {
         </Select>
         <label className="flex min-h-touch items-center gap-3 text-sm text-slate-600">
           <input type="checkbox" className="h-5 w-5 rounded border-slate-300" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} />
-          Show disabled exercises
+          {t('exercises.showDisabled')}
         </label>
       </div>
       {toggle.error && <FormError message={errorMessage(toggle.error)} />}
@@ -81,8 +85,8 @@ export default function ExercisesPage() {
       {error && <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />}
       {data && list.length === 0 && (
         <EmptyState
-          title={data.length === 0 ? 'The library is empty' : 'No exercises match'}
-          action={canEdit && data.length === 0 && <Button onClick={() => setEditing('new')}>Add the first exercise</Button>}
+          title={data.length === 0 ? t('exercises.libraryEmpty') : t('exercises.noMatch')}
+          action={canEdit && data.length === 0 && <Button onClick={() => setEditing('new')}>{t('exercises.addFirst')}</Button>}
         />
       )}
       <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -93,7 +97,7 @@ export default function ExercisesPage() {
                 <p className="text-lg font-semibold text-slate-900">{e.name}</p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <Badge tone="blue">{humanize(e.category)}</Badge>
-                  {e.status === 'DISABLED' && <Badge tone="slate">Disabled</Badge>}
+                  {e.status === 'DISABLED' && <Badge tone="slate">{t('exercises.disabled')}</Badge>}
                 </div>
               </div>
               <span className="whitespace-nowrap text-sm font-medium text-slate-600">
@@ -103,14 +107,14 @@ export default function ExercisesPage() {
             {e.description && <p className="mt-3 text-sm text-slate-600">{e.description}</p>}
             {e.instructions && <p className="mt-2 whitespace-pre-line text-sm text-slate-500">{e.instructions}</p>}
             <div className="mt-auto flex items-center justify-between pt-4 text-sm text-slate-500">
-              <span>Used in {e._count?.sessionExercises ?? 0} session{e._count?.sessionExercises === 1 ? '' : 's'}</span>
+              <span>{t(e._count?.sessionExercises === 1 ? 'exercises.usedInOne' : 'exercises.usedInOther', { count: e._count?.sessionExercises ?? 0 })}</span>
               {canEdit && (
                 <span className="flex gap-1">
                   <Button variant="ghost" size="sm" onClick={() => setEditing(e)}>
-                    Edit
+                    {t('common.edit')}
                   </Button>
                   <Button variant="ghost" size="sm" loading={toggle.isPending && toggle.variables?.id === e.id} onClick={() => toggle.mutate(e)}>
-                    {e.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+                    {e.status === 'ACTIVE' ? t('exercises.disable') : t('exercises.enable')}
                   </Button>
                 </span>
               )}
@@ -124,6 +128,8 @@ export default function ExercisesPage() {
 }
 
 function ExerciseModal({ exercise, onClose }: { exercise: Exercise | null; onClose: () => void }) {
+  const t = useT();
+  const schema = useMemo(() => makeSchema(t), [t]);
   const qc = useQueryClient();
   const {
     register,
@@ -162,14 +168,14 @@ function ExerciseModal({ exercise, onClose }: { exercise: Exercise | null; onClo
       open
       size="lg"
       onClose={onClose}
-      title={exercise ? 'Edit exercise' : 'New exercise'}
+      title={exercise ? t('exercises.editExercise') : t('exercises.newExercise')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" form="exercise-form" loading={save.isPending}>
-            Save
+            {t('common.save')}
           </Button>
         </>
       }
@@ -178,10 +184,10 @@ function ExerciseModal({ exercise, onClose }: { exercise: Exercise | null; onClo
         <div className="sm:col-span-2">
           <FormError message={save.error ? errorMessage(save.error) : null} />
         </div>
-        <Field label="Name" required error={errors.name?.message}>
+        <Field label={t('exercises.name')} required error={errors.name?.message}>
           <Input {...register('name')} />
         </Field>
-        <Field label="Category">
+        <Field label={t('exercises.category')}>
           <Select {...register('category')}>
             {EXERCISE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -191,20 +197,20 @@ function ExerciseModal({ exercise, onClose }: { exercise: Exercise | null; onClo
           </Select>
         </Field>
         <div className="grid grid-cols-3 gap-3 sm:col-span-2">
-          <Field label="Default sets" error={errors.defaultSets?.message}>
+          <Field label={t('exercises.defaultSets')} error={errors.defaultSets?.message}>
             <Input type="number" inputMode="numeric" min={0} {...register('defaultSets')} />
           </Field>
-          <Field label="Default reps" error={errors.defaultRepetitions?.message}>
+          <Field label={t('exercises.defaultReps')} error={errors.defaultRepetitions?.message}>
             <Input type="number" inputMode="numeric" min={0} {...register('defaultRepetitions')} />
           </Field>
-          <Field label="Duration (s)" error={errors.defaultDurationSeconds?.message}>
+          <Field label={t('exercises.durationSeconds')} error={errors.defaultDurationSeconds?.message}>
             <Input type="number" inputMode="numeric" min={0} {...register('defaultDurationSeconds')} />
           </Field>
         </div>
-        <Field label="Description" className="sm:col-span-2">
+        <Field label={t('exercises.description')} className="sm:col-span-2">
           <Textarea rows={2} {...register('description')} />
         </Field>
-        <Field label="Instructions" className="sm:col-span-2">
+        <Field label={t('exercises.instructions')} className="sm:col-span-2">
           <Textarea rows={4} {...register('instructions')} />
         </Field>
       </form>

@@ -7,9 +7,11 @@ import { api } from '@/lib/api';
 import { patientName } from '@/lib/format';
 import type { Paginated, PatientListItem, PatientRef } from '@/lib/types';
 import { useDebounce } from '@/lib/use-debounce';
+import { useT } from '@/lib/i18n';
 
 /** Type-ahead patient search (name or code). */
 export function PatientPicker({ value, onChange }: { value: PatientRef | null; onChange: (p: PatientRef | null) => void }) {
+  const t = useT();
   const [search, setSearch] = useState('');
   const q = useDebounce(search, 250);
   const { data, isFetching } = useQuery({
@@ -25,23 +27,23 @@ export function PatientPicker({ value, onChange }: { value: PatientRef | null; o
           <span className="font-medium">{patientName(value)}</span> <span className="text-sm text-slate-500">{value.patientCode}</span>
         </span>
         <button type="button" className="min-h-touch px-2 text-sm text-primary-700" onClick={() => onChange(null)}>
-          Change
+          {t('patients.change')}
         </button>
       </div>
     );
   }
   return (
     <div>
-      <Input type="search" placeholder="Search patient name or code" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <Input type="search" placeholder={t('patients.pickerPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} />
       <ul className="mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200">
-        {isFetching && !data && <li className="px-3 py-2 text-sm text-slate-500">Searching…</li>}
-        {data?.data.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">No active patients found</li>}
+        {isFetching && !data && <li className="px-3 py-2 text-sm text-slate-500">{t('patients.searching')}</li>}
+        {data?.data.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">{t('patients.noActivePatients')}</li>}
         {data?.data.map((p) => (
           <li key={p.id}>
             <button type="button" onClick={() => onChange(p)} className="flex min-h-touch w-full items-center justify-between px-3 text-left hover:bg-primary-50">
               <span>{patientName(p)}</span>
               <span className="text-sm text-slate-500">
-                {p.patientCode} · {p.age} y
+                {p.patientCode} · {t('patients.ageShort', { age: p.age })}
               </span>
             </button>
           </li>

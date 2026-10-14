@@ -6,6 +6,7 @@ import { errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/auth';
 import { formatTime, patientName } from '@/lib/format';
 import { useStartSession } from '@/lib/hooks';
+import { useT } from '@/lib/i18n';
 import { appointmentStatusTone, sessionStatusTone } from '@/lib/labels';
 import { can } from '@/lib/permissions';
 import type { AppointmentStatus, PatientRef, SessionStatus, UserRef } from '@/lib/types';
@@ -23,6 +24,7 @@ export interface TodayItem {
 /** US-050: time-ordered list of today's patients with Open Patient / Start Session actions. */
 export function TodayList({ items, showTherapist }: { items: TodayItem[]; showTherapist?: boolean }) {
   const me = useMe();
+  const t = useT();
   const start = useStartSession();
   const canWrite = can(me.role, 'session.write');
 
@@ -38,7 +40,7 @@ export function TodayList({ items, showTherapist }: { items: TodayItem[]; showTh
                 {patientName(a.patient)}
               </Link>
               <p className="truncate text-sm text-slate-500">
-                {[a.patient.age !== undefined ? `${a.patient.age} y` : null, a.patient.diagnosis, showTherapist ? a.therapist.fullName : null]
+                {[a.patient.age !== undefined ? t('calendar.ageShort', { age: a.patient.age }) : null, a.patient.diagnosis, showTherapist ? a.therapist.fullName : null]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -52,12 +54,12 @@ export function TodayList({ items, showTherapist }: { items: TodayItem[]; showTh
             </div>
             <div className="flex w-full gap-2 sm:w-auto">
               <LinkButton href={`/patients/${a.patient.id}`} variant="secondary" className="flex-1 sm:flex-none">
-                Open Patient
+                {t('calendar.openPatient')}
               </LinkButton>
               {canWrite &&
                 (a.session ? (
                   <LinkButton href={`/sessions/${a.session.id}`} variant={a.session.status === 'DRAFT' ? 'primary' : 'ghost'} className="flex-1 sm:flex-none">
-                    {a.session.status === 'DRAFT' ? 'Continue' : 'View Session'}
+                    {a.session.status === 'DRAFT' ? t('calendar.continue') : t('calendar.viewSession')}
                   </LinkButton>
                 ) : a.status === 'NO_SHOW' || a.status === 'CANCELLED' ? (
                   <Badge>—</Badge>
@@ -67,7 +69,7 @@ export function TodayList({ items, showTherapist }: { items: TodayItem[]; showTh
                     loading={start.isPending && start.variables?.appointmentId === a.id}
                     onClick={() => start.mutate({ patientId: a.patient.id, appointmentId: a.id })}
                   >
-                    Start Session
+                    {t('calendar.startSession')}
                   </Button>
                 ))}
             </div>
